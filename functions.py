@@ -21,4 +21,4 @@ def choose_option(dictionary: dict[str,int]) -> str:
     for key in dictionary.keys():
         dictionary[key] = 0
         
-    return output
+    return output.capitalize()
