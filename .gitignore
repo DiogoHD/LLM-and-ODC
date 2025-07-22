@@ -1,1 +1,4 @@
 ODC IA.xlsx
+
+__pycache__/
+*.py[cod]
