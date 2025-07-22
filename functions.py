@@ -12,3 +12,13 @@ def create_message(prompt: str, url: str) -> str:
     commit = response.text            # Devolve apenas o conteúdo da resposta HTTP como string
     content = prompt + "\n" + commit  # Junta a prompt e o commit
     return content
+
+def choose_option(dictionary: dict[str,int]) -> str:
+    # Determina o elemento mais dito pelo modelo com base no dicionario e retorna a chave
+    output = max(dictionary, key=lambda k: dictionary[k])
+    
+    # Reseta os valores do dicionário
+    for key in dictionary.keys():
+        dictionary[key] = 0
+        
+    return output
