@@ -14,6 +14,7 @@ def create_message(prompt: str, url: str) -> str:
     return content
 
 def choose_option(dictionary: dict[str,int]) -> str:
+    "Retorna o elemento que apareceu mais vezes"
     # Determina o elemento mais dito pelo modelo com base no dicionario e retorna a chave
     output = max(dictionary, key=lambda k: dictionary[k])
     
