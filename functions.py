@@ -1,16 +1,22 @@
-from requests import get
+from github import Github
 
-def create_message(prompt: str, url: str) -> str:
+def create_message(prompt: str, sha: str) -> str:
     "Dado uma prompt e um url de um commit, vai buscar o .diff desse url e junta-o à prompt, de forma a criar a mensagem para a IA"
+   
+    g = Github()
+ 
+    repo = g.get_repo("torvalds/linux")
+    commit = repo.get_commit(sha)
     
-    # Adiciona a extensão ao url se este ainda não a tiver
-    if not url.endswith(".diff"):
-        url += ".diff"
+    with open("prompt.txt", "w") as p:
+        for f in commit.files:
+            p.write("\nFile name: " + f.filename + "\n")
+            p.write("Changes: " + str(f.changes) + "\n")
+            p.write("Patch (diff):\n" + f.patch + "\n")
 
-    response = get(url)               # Envia um pedido HTTP do tipo GET para o url e retorna um objeto Response com várias informações sobre a reposta do servidor
-    response.raise_for_status()       # Dá erro se não conseguir aceder
-    commit = response.text            # Devolve apenas o conteúdo da resposta HTTP como string
-    content = prompt + "\n" + commit  # Junta a prompt e o commit
+    with open("prompt.txt", "r") as p:
+        content = prompt + "\n" + p.read() # Junta a prompt e o commit
+    print(content)
     return content
 
 def choose_option(dictionary: dict[str,int]) -> str:

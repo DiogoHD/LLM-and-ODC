@@ -4,3 +4,4 @@ __pycache__/
 *.py[cod]
 
 *.csv
+prompt.txt
