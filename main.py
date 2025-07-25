@@ -1,8 +1,7 @@
-from ollama import chat
-import csv
+from ollama import chat, ChatResponse
 import os
 from github import Github
-from functions import create_message, choose_option
+from functions import create_message
 
 
 
@@ -10,48 +9,18 @@ prompt = "A defect type can be one of the following categories: 1) Assignment/In
 sha = "b363b3304bcf68c4541683b2eff70b29f0446a5b"
 content = create_message(prompt, sha)
 
-# Tuples com os defect types, defect qualifiers e modelos usados
-defect_types: dict[str,int] = {"assignment":0, "initialization":0, "checking":0, "timing":0, "algorithm":0, "method":0, "function":0, "interface":0}
-defect_qualifiers: dict[str,int]  = {"missing":0, "incorrect":0, "extraneous":0}
-models = ("gemma3", "llama3.2", "mistral", "phi3")
+models = ("gemma3", "llama3.2", "mistral", "phi3")      # modelos usados
 
-with open("file.csv", "w", newline='') as f:
-    csvwriter = csv.writer(f, dialect="excel")
-    csvwriter.writerow(["model", "Defect Type", "Defect Qualifier"])
+folder = "responses"    # Caminho da pasta onde quero guardado as respostas dos modelos de IA
+os.makedirs(folder, exist_ok=True)  # Cria a pasta se esta não existir
 
 for model in models:
-    stream = chat(
+    response: ChatResponse = chat(
         model = model,  # Este parâmetro define o modelo do ollama a ser usado
         messages = [{'role': 'user', 'content': content}],  # Aqui define-se quem está a usar o modelo e o seu conteúdo
-        stream = True,  # Permite ver a resposta enquanto se vai escrevendo
         )
     
-    folder = "responses"    # Caminho da pasta onde quero guardado as respostas dos modelos de IA
-    os.makedirs(folder, exist_ok=True)  # Cria a pasta se esta não existir
-    file_name = model + ".txt"
-    path = os.path.join(folder, file_name)
+    path = os.path.join(folder, model + ".txt")  # Cria o caminho para o ficheiro no formato correto
     
     with open(path, "w") as f:
-        for chunk in stream:        
-            found = False
-            text = chunk['message']['content']
-            
-            # Encontra os defect types e qualifiers no texto
-            # Neste momento mete de outra cor para melhor identificação manual mas, no futuro, servirá para automatizar
-            for t in defect_types.keys():
-                if t in text.lower():
-                    defect_types[t] += 1
-                    found = True
-                    break
-            
-            for q in defect_qualifiers.keys():
-                if q in text.lower():
-                    defect_qualifiers[q] += 1
-                    found = True
-                    break
-            
-            f.write(text)
-            
-    with open("file.csv", "a", newline='') as f:
-        csvwriter = csv.writer(f, dialect="excel")
-        csvwriter.writerow([model, choose_option(defect_types), choose_option(defect_qualifiers)])
+        f.write(response.message.content)
