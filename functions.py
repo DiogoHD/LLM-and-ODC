@@ -16,7 +16,7 @@ def create_message(prompt: str, sha: str) -> str:
 
     with open("prompt.txt", "r") as p:
         content = prompt + "\n" + p.read() # Junta a prompt e o commit
-    print(content)
+    
     return content
 
 def choose_option(dictionary: dict[str,int]) -> str:

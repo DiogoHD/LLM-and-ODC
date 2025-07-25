@@ -1,6 +1,6 @@
 from ollama import chat
-from colorama import Fore
 import csv
+import os
 from github import Github
 from functions import create_message, choose_option
 
@@ -26,27 +26,31 @@ for model in models:
         stream = True,  # Permite ver a resposta enquanto se vai escrevendo
         )
     
-    for chunk in stream:        
-        found = False
-        text = chunk['message']['content']
-        
-        # Encontra os defect types e qualifiers no texto
-        # Neste momento mete de outra cor para melhor identificação manual mas, no futuro, servirá para automatizar
-        for t in defect_types.keys():
-            if t in text.lower():
-                defect_types[t] += 1
-                found = True
-                print(Fore.BLUE + text + Fore.RESET, end='', flush=True)
-                break
-        
-        for q in defect_qualifiers.keys():
-            if q in text.lower():
-                defect_qualifiers[q] += 1
-                found = True
-                print(Fore.RED + text + Fore.RESET, end='', flush=True)
-        
-        if not found:
-            print(text, end='', flush=True)
+    folder = "responses"    # Caminho da pasta onde quero guardado as respostas dos modelos de IA
+    os.makedirs(folder, exist_ok=True)  # Cria a pasta se esta não existir
+    file_name = model + ".txt"
+    path = os.path.join(folder, file_name)
+    
+    with open(path, "w") as f:
+        for chunk in stream:        
+            found = False
+            text = chunk['message']['content']
+            
+            # Encontra os defect types e qualifiers no texto
+            # Neste momento mete de outra cor para melhor identificação manual mas, no futuro, servirá para automatizar
+            for t in defect_types.keys():
+                if t in text.lower():
+                    defect_types[t] += 1
+                    found = True
+                    break
+            
+            for q in defect_qualifiers.keys():
+                if q in text.lower():
+                    defect_qualifiers[q] += 1
+                    found = True
+                    break
+            
+            f.write(text)
             
     with open("file.csv", "a", newline='') as f:
         csvwriter = csv.writer(f, dialect="excel")
