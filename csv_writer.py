@@ -27,6 +27,6 @@ with open("file.csv", "w", newline='') as csv_file:
                     defect_types[t] = text.count(t)
                 
                 for q in defect_qualifiers.keys():
-                    defect_qualifiers[q] += text.count(q)
+                    defect_qualifiers[q] = text.count(q)
             
                 csvwriter.writerow([model, choose_option(defect_types), choose_option(defect_qualifiers)])
