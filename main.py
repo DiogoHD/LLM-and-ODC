@@ -11,17 +11,29 @@ content = create_message(prompt, sha)
 # Lista de modelos usados
 models_list: ollama.ListResponse = ollama.list()
 models = [m.model for m in models_list.models]
-
-folder = "responses"    # Caminho da pasta onde quero guardado as respostas dos modelos de IA
+ 
+folder = os.path.join("responses", sha)     # Caminho da pasta onde quero guardado as respostas dos modelos de IA
 os.makedirs(folder, exist_ok=True)  # Cria a pasta se esta não existir
 
 for model in models:
+    
+    if ":" in model:
+        pos = model.find(":")
+        model_name = model[:pos]
+    elif model is None:
+        continue
+    else:
+        model_name = model
+    
     response: ollama.ChatResponse = ollama.chat(
         model = model,  # Este parâmetro define o modelo do ollama a ser usado
         messages = [{'role': 'user', 'content': content}],  # Aqui define-se quem está a usar o modelo e o seu conteúdo
         )
     
-    path = os.path.join(folder, model + ".txt")  # Cria o caminho para o ficheiro no formato correto
+    path = os.path.join(folder, model_name + ".txt")  # Cria o caminho para o ficheiro no formato correto
     
     with open(path, "w") as f:
-        f.write(response.message.content)
+        if response.message and response.message.content:
+            f.write(response.message.content)
+        else:
+            f.write("[Sem Resposta do Modelo]")
