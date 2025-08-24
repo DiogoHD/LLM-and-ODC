@@ -3,7 +3,6 @@ ODC IA.xlsx
 __pycache__/
 *.py[cod]
 
-*.xlsx
 *.csv
 prompt.txt
 responses/
