@@ -1,5 +1,6 @@
 import csv
 import os
+import pandas as pd
 from functions import choose_option
 
 # Tuples com os defect types, defect qualifiers
@@ -10,8 +11,8 @@ folder = "responses"
 
 with open("file.csv", "w", newline='') as csv_file:
     csvwriter = csv.writer(csv_file, dialect="excel")
-    csvwriter.writerow(["model", "Defect Type", "Defect Qualifier"])
-             
+    csvwriter.writerow(["Sha", "Model", "Defect Type", "Defect Qualifier"])
+           
     for sha in os.listdir(folder):
         sha_path = os.path.join(folder, sha)
         
@@ -23,10 +24,22 @@ with open("file.csv", "w", newline='') as csv_file:
                 text = f.read().lower()
                 found = False
                 
-                for t in defect_types.keys():
-                    defect_types[t] = text.count(t)
+                pos = text.find("defect type:")
+                if pos == -1:
+                    for t in defect_types.keys():
+                        defect_types[t] = text.count(t)
+                else:
+                    found = True
+                    for t in defect_types.keys():
+                        defect_types[t] = text.find(t, pos)
                 
-                for q in defect_qualifiers.keys():
-                    defect_qualifiers[q] = text.count(q)
+                pos = text.find("defect qualifier:")
+                if pos == -1:
+                    for q in defect_qualifiers.keys():
+                        defect_qualifiers[q] = text.count(q)
+                else:
+                    found = True
+                    for q in defect_qualifiers.keys():
+                        defect_qualifiers[q] = text.find(q, pos)
             
-                csvwriter.writerow([model, choose_option(defect_types), choose_option(defect_qualifiers)])
+                csvwriter.writerow([sha, model, choose_option(defect_types, found), choose_option(defect_qualifiers, found)])
