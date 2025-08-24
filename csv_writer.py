@@ -1,7 +1,6 @@
 import csv
 import os
 import re
-from functions import choose_option
 
 folder = "responses"
 
@@ -21,14 +20,14 @@ with open("file.csv", "w", newline='') as csv_file:
                 
                 # Uses a raw string (r) so Python can allow escape characters
                 # \s* -> Allows spaces
-                # (.+) -> Caputres the response 
+                # (\S+) -> Caputres the first word after the string
+                # [:\-–—] -> Allows : (Colon), - (Hyphen), – (En dash) and — (Em dash)
                 # re.IGNORECASE makes the search be case-insensitive
-                type_match = re.search(r"Defect Type:\s*(.+)", text, re.IGNORECASE)
-                qualifier_match = re.search(r"Defect Qualifier:\s*(.+)", text, re.IGNORECASE)
+                type_match = re.search(r"Defect Type\s*[:\-–—]\s*(\S+)", text, re.IGNORECASE)
+                qualifier_match = re.search(r"Defect Qualifier\s*[:\-–—]\s*(\S+)", text, re.IGNORECASE)
                 
                 # takes the response found
                 defect_type = type_match.group(1) if type_match else None
                 defect_qualifier = qualifier_match.group(1) if qualifier_match else None
-
             
                 csvwriter.writerow([sha, model, defect_type, defect_qualifier])
