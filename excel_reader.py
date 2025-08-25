@@ -3,7 +3,7 @@ import pandas as pd
 excel = pd.read_excel("vulnerabilities.xlsx", sheet_name=0, header=1)
 excel[["V_ID", "Project"]] = excel[["V_ID", "Project"]].ffill()
 
-desired_cols = ["V_ID", "Project", "P_COMMIT", "Defect Type", "Defect Qualifier", "# Files"]
+desired_cols = ["V_ID", "Project", "CVE", "V_CLASSIFICATION", "P_COMMIT", "Defect Type", "Defect Qualifier", "# Files"]
 
 # Filters the initial excel
 df = excel[desired_cols].copy()
