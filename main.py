@@ -37,7 +37,7 @@ for index, row in df.iterrows():
         
         path = os.path.join(folder, model_name + ".txt")  # Cria o caminho para o ficheiro no formato correto
         
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             if response.message and response.message.content:
                 f.write(response.message.content)
             else:
