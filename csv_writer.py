@@ -30,7 +30,7 @@ with open("file.csv", "w", newline='') as csv_file:
                 qualifier_match = regex.search(r"(?:Defect Qualifier){e<=1}\s*[:\-–—]\s*(\S+)", text, regex.IGNORECASE)
                 
                 # Takes the response found
-                defect_type = type_match.group(1).strip("'\",*") if type_match else None
-                defect_qualifier = qualifier_match.group(1).strip("'\",*") if qualifier_match else None
+                defect_type = type_match.group(1).strip("'\",*()") if type_match else None
+                defect_qualifier = qualifier_match.group(1).strip("'\",*()") if qualifier_match else None
             
                 csvwriter.writerow([sha, model, defect_type, defect_qualifier])
