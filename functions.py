@@ -6,21 +6,24 @@ def create_message(project: str, prompt: str, sha: str) -> str:
     g = Github()
     
     # Gets the repository 
-    if project == "Linux":
-        repo = g.get_repo("torvalds/linux")
-    elif project == "Mozilla":
-        repo = g.get_repo("mozilla/gecko-dev")
-    elif project == "Xen":
-        repo = g.get_repo("xen-project/xen")
+    match project:
+        case "Linux":
+            repo = g.get_repo("torvalds/linux")
+        case "Mozilla":
+            repo = g.get_repo("mozilla/gecko-dev")
+        case "Xen":
+            repo = g.get_repo("xen-project/xen")
+        case _:
+            raise ValueError(f"Unknown Project: {project}")
     commit = repo.get_commit(sha)
     response_format = "Respond only in the format:\nDefect Type: <Defect Type>\nDefect Qualifier: <Defect Qualifier>"
     
     # Write commit in txt file
     with open("prompt.txt", "w") as p:
         for f in commit.files:
-            p.write("\nFile name: " + f.filename + "\n")
-            p.write("Changes: " + str(f.changes) + "\n")
-            p.write("Patch (diff):\n" + f.patch + "\n")
+            p.write(f"\nFile name: {f.filename}\n")
+            p.write(f"Changes: {str(f.changes)}\n")
+            p.write(f"Patch (diff):\n{f.patch}\n")
 
     # Joins the prompt with the commit and the format intended
     with open("prompt.txt", "r") as p:
