@@ -32,18 +32,18 @@ def create_bar(Category: str, axes: plt.axes, ax: int):
     # Adds values on top of the bars for the Human
     for i, value in enumerate(input_counts):
         axes[ax].text(x[i] + w/2, value, str(value), ha='center', va='bottom')
-        
-    axes[ax].legend()
     
 
 # Read CSVs
 df_output = pd.read_csv("file.csv")
 df_input = pd.read_csv("input.csv")
 
-fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+# Creating Bar Graphs
+fig, axes = plt.subplots(1, 2, figsize=(10, 5), constrained_layout=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
 create_bar("Defect Type", axes, 0)
 create_bar("Defect Qualifier", axes, 1)
 
-plt.suptitle("Results")
-plt.tight_layout()
+fig.legend(['IA', 'Human'], loc='lower center')    # Showing bar graph's legend
+fig.suptitle("Defect Type and Defect Qualifier Comparison", fontsize=16)         # The Main Title
+fig.tight_layout()              # Automatically adjusts margins and spacing
 plt.show()
