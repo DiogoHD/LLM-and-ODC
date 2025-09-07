@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-def create_bar(Category: str, ax: plt.axes):
+def create_bar(Category: str, ax: plt.axes) -> None:
     # Counting Data
     output_counts = df_output[Category].value_counts()
     input_counts  = df_input[Category].value_counts()
@@ -21,9 +21,9 @@ def create_bar(Category: str, ax: plt.axes):
     
     # Labels
     ax.set_xticks(x)
-    ax.set_xticklabels(keys, rotation=45, ha="right")
-    ax.set_ylabel(Category)
-    ax.set_title(Category + " - Comparison")
+    ax.set_xticklabels(keys, rotation=90, ha="center")
+    ax.set_ylabel("Frequency")
+    ax.set_title(Category)
     
     # Adds values on top of the bars for the IA
     for i, value in enumerate(output_counts):
@@ -32,6 +32,10 @@ def create_bar(Category: str, ax: plt.axes):
     # Adds values on top of the bars for the Human
     for i, value in enumerate(input_counts):
         ax.text(x[i] + w/2, value, str(value), ha='center', va='bottom')
+        
+    # Adjust Y-axis limit to make room for values
+    ymax = max(output_counts.max(), input_counts.max())
+    ax.set_ylim(0, ymax * 1.10)  # 10% off
     
 
 # Read CSVs
