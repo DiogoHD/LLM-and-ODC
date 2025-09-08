@@ -1,5 +1,5 @@
 import pandas as pd
-import os
+from pathlib import Path
 import regex
 
 def make_pattern(name: str) -> regex.Pattern:
@@ -26,23 +26,18 @@ def extract_defects(text: str) -> dict[str, str | None]:
         result[defect] = match.group(1).strip("'\",*()") if match else None  # If found, it strips the defect from unwanted characters, otherwise returns None
     return result
 
-folder = "responses"
+folder = Path("responses")
 data = []
 
-for sha in os.listdir(folder):
-    sha_path = os.path.join(folder, sha)
-    
-    for file_name in os.listdir(sha_path):
-        f_path = os.path.join(sha_path, file_name)
-        model = file_name[:-4]
-        
-        with open(f_path, "r") as f:
-            text = f.read()
+for sha_dir in folder.iterdir():    # For every folder and file in the main folder 
+    if sha_dir.is_dir():            # Only runs the code if it's a folder
+        for file_path in sha_dir.iterdir():        
+            text = file_path.read_text()    # pathlib method that reads the file and returns a string
             defects = extract_defects(text)
         
             data.append({
-                "Sha": sha, 
-                "Model": model, 
+                "Sha": sha_dir.name,        # sha_dir is a path, so sha_dir.name only returns the name of the folder and not the entire path
+                "Model": file_path.stem,    # Returns the stem (file name witouth extension)
                 "Defect Type": defects["Defect Type"], 
                 "Defect Qualifier": defects["Defect Qualifier"]
                 })
