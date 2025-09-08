@@ -19,19 +19,19 @@ def make_pattern(name: str) -> regex.Pattern:
     return pattern
 
 def extract_defects(text: str) -> dict[str, str | None]:
-    "Extracts Defect Type and Defect Qualifier form a given text"
+    "Extracts 'Defect Type' and 'Defect Qualifier' from a given text into a dictionary"
     result = {}
     for defect in ["Defect Type", "Defect Qualifier"]:
-        match = regex.search(make_pattern(defect), text)                      # Finds the defect in the given text, using a especific pattern
-        result[defect] = match.group(1).strip("'\",*()") if match else None  # If found, it strips the defect from unwanted characters, otherwise returns None
+        match = regex.search(make_pattern(defect), text)                        # Finds the defect in the given text, using a especific pattern
+        result[defect] = match.group(1).strip("'\",*()") if match else None     # If found, it strips the defect from unwanted characters, otherwise returns None
     return result
 
 folder = Path("responses")
-data = []
+data: list[dict[str, str | None]] = []
 
 for sha_dir in folder.iterdir():    # For every folder and file in the main folder 
     if sha_dir.is_dir():            # Only runs the code if it's a folder
-        for file_path in sha_dir.iterdir():        
+        for file_path in sha_dir.rglob("*.txt"):        
             text = file_path.read_text()    # pathlib method that reads the file and returns a string
             defects = extract_defects(text)
         
