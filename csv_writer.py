@@ -1,4 +1,4 @@
-import csv
+import pandas as pd
 import os
 import regex
 
@@ -27,20 +27,26 @@ def extract_defects(text: str) -> dict[str, str | None]:
     return result
 
 folder = "responses"
+data = []
 
-with open("file.csv", "w", newline='') as csv_file:
-    csvwriter = csv.writer(csv_file, dialect="excel")
-    csvwriter.writerow(["Sha", "Model", "Defect Type", "Defect Qualifier"])
-           
-    for sha in os.listdir(folder):
-        sha_path = os.path.join(folder, sha)
+for sha in os.listdir(folder):
+    sha_path = os.path.join(folder, sha)
+    
+    for file_name in os.listdir(sha_path):
+        f_path = os.path.join(sha_path, file_name)
+        model = file_name[:-4]
         
-        for file_name in os.listdir(sha_path):
-            f_path = os.path.join(sha_path, file_name)
-            model = file_name[:-4]
-            
-            with open(f_path, "r") as f:
-                text = f.read()
-                defects = extract_defects(text)
-         
-                csvwriter.writerow([sha, model, defects["Defect Type"], defects["Defect Qualifier"]])
+        with open(f_path, "r") as f:
+            text = f.read()
+            defects = extract_defects(text)
+        
+            data.append({
+                "Sha": sha, 
+                "Model": model, 
+                "Defect Type": defects["Defect Type"], 
+                "Defect Qualifier": defects["Defect Qualifier"]
+                })
+                
+# DataFrame
+df = pd.DataFrame(data)                 # Create DataFrame
+df.to_csv("output.csv", index=False)    # Export DataFrame to CSV
