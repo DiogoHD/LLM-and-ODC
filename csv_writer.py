@@ -2,7 +2,8 @@ import csv
 import os
 import regex
 
-def make_pattern(name: str):
+def make_pattern(name: str) -> regex.Pattern:
+    "Creates a regex pattern to extract values associated with the especified field"
     # Uses a raw string so Python can allow escape characters
     pattern = regex.compile(rf"""
     (?:{name})      # Use that word witouth capturing it
@@ -10,13 +11,20 @@ def make_pattern(name: str):
     \s*[:\-–—]\s*   # Allows various separators and it can have 0 or multiple spaces before or after the separator
     (?:\d+\)?\s*)?  # If a number appears before the word that we want [2) or 3] it ignores it
     [(<[\{{]*       # Allows the word to be between some kind of brackets
-    ([A-Za-z/]+)    # Caputres the first word after the string (that only can contain letters and a /)
+    ([A-Za-z/]+)    # Captures the first word after the string (that only can contain letters and a /)
     """, regex.IGNORECASE | regex.VERBOSE)
     # regex.IGNORECASE makes the search be case-insensitive
     # regex.VERBOSE makes the search ignore newlines, spaces, tabs and comments
     
     return pattern
 
+def extract_defects(text: str) -> dict[str, str | None]:
+    "Extracts Defect Type and Defect Qualifier form a given text"
+    result = {}
+    for defect in ["Defect Type", "Defect Qualifier"]:
+        match = regex.search(make_pattern(defect), text)                      # Finds the defect in the given text, using a especific pattern
+        result[defect] = match.group(1).strip("'\",*()") if match else None  # If found, it strips the defect from unwanted characters, otherwise returns None
+    return result
 
 folder = "responses"
 
@@ -33,12 +41,6 @@ with open("file.csv", "w", newline='') as csv_file:
             
             with open(f_path, "r") as f:
                 text = f.read()
-                
-                type_match = regex.search(make_pattern("Defect Type"), text)
-                qualifier_match = regex.search(make_pattern("Defect Qualifier"), text)
-                
-                # Takes the response found
-                defect_type = type_match.group(1).strip("'\",*()") if type_match else None
-                defect_qualifier = qualifier_match.group(1).strip("'\",*()") if qualifier_match else None
-            
-                csvwriter.writerow([sha, model, defect_type, defect_qualifier])
+                defects = extract_defects(text)
+         
+                csvwriter.writerow([sha, model, defects["Defect Type"], defects["Defect Qualifier"]])
