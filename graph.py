@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: plt.axes) -> None:
+def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     "Creates Bar Graph"
     
     # Data
@@ -25,9 +25,10 @@ def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: p
     ax.set_ylim(0, ymax * 1.10)     # 10% off 
     
     # Labels
-    ax.set_xticks(x + w*(len(counts.columns)-1)/2)
+    ax.set_xticks(x + w*(counts.shape[1]-1)/2)          # counts.shape returns a tuple with the number of lines and columns (lines, columns); -1)/2 is used to center the text
     ax.set_xticklabels(counts.index, rotation=0, ha="center")
     ax.set_ylabel("Frequency")
+    ax.yaxis.grid(True, linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
     ax.set_title(category)
     ax.legend()
 
