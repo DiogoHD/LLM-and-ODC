@@ -2,12 +2,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-def create_bar(category: str, ax: plt.axes) -> None:
+def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: plt.axes) -> None:
     "Creates Bar Graph"
     
     # Data
-    counts = pd.crosstab(df_output[category], df_output["Model"])   # Creates a table with the frequency of each defect for each model
-    human_counts  = df_input[category].value_counts()               # Counting Human Data
+    counts = pd.crosstab(df_ia[category], df_ia["Model"])   # Creates a table with the frequency of each defect for each model
+    human_counts  = df_human[category].value_counts()               # Counting Human Data
     counts = counts.reindex(human_counts.index, fill_value=0)       # Only keeps the real defects
     counts["Human"] = human_counts                                  # Adds "Human" column to the table
     
@@ -33,13 +33,13 @@ def create_bar(category: str, ax: plt.axes) -> None:
 
     
 # Read CSVs
-df_output = pd.read_csv("file.csv")
+df_output = pd.read_csv("output.csv")
 df_input = pd.read_csv("input.csv")
 
 # Creating Bar Graphs
 fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
-create_bar("Defect Type", axes[0])
-create_bar("Defect Qualifier", axes[1])
+for i, defect in enumerate(["Defect Type", "Defect Qualifier"]):
+    create_bar(df_output, df_input, defect, axes[i])
 
 fig.suptitle("Defect Type and Defect Qualifier Comparison", fontsize=16)         # The Main Title
 plt.show()
