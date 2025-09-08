@@ -1,5 +1,5 @@
 import ollama
-import os
+from pathlib import Path
 from github import Github
 import pandas as pd
 from functions import create_message
@@ -11,34 +11,32 @@ prompt = "A defect type can be one of the following categories: 1) Assignment/In
 models_list: ollama.ListResponse = ollama.list()
 models = [m.model for m in models_list.models]
 
-df = pd.read_csv("input.csv")       # Reads the csv file
+df: pd.DataFrame = pd.read_csv("input.csv")       # Reads the csv file
+responses_fodler: Path = Path("responses")
 
 for index, row in df.iterrows():
     
-    sha = row["P_COMMIT"]
-    folder = os.path.join("responses", sha)     # Folder's path to save IA's response
-    os.makedirs(folder, exist_ok=True)          # Creates the folder if it doens't exist
+    sha: str = row["P_COMMIT"]
+    sha_folder: Path = responses_fodler / sha       # Folder's path to save IA's response
+    sha_folder.mkdir(parents=True, exist_ok=True)   # Creates the folder if it doens't exist; parents=True creates every needed parent folder if it doesn't exist; exist_ok=True doesn't give a error if the folder already exists
     content = create_message(row["Project"], prompt, sha)
     
     for model in models:
-        
-        if ":" in model:
-            pos = model.find(":")
-            model_name = model[:pos]
-        elif model is None:
+        if model is None:
             continue
-        else:
-            model_name = model
+        
+        model_name: str = model.split(":", 1)[0]    # Splits : first ocurrence  and takes the first word before that ocurrence       
         
         response: ollama.ChatResponse = ollama.chat(
-            model = model,  # Este parâmetro define o modelo do ollama a ser usado
-            messages = [{'role': 'user', 'content': content}],  # Aqui define-se quem está a usar o modelo e o seu conteúdo
+            model = model,                                      # Defines which ollama's model is going to be used
+            messages = [{"role": "user", "content": content}],  # Defines who's using the model and what's going to be its content
             )
         
-        path = os.path.join(folder, model_name + ".txt")  # Cria o caminho para o ficheiro no formato correto
+        file_path: Path = sha_folder / f"{model_name}.txt"      # Creates the path to the text folder
         
-        with open(path, "w", encoding="utf-8") as f:
+        # Writes response in a text file
+        with open(file_path, "w", encoding="utf-8") as f:
             if response.message and response.message.content:
                 f.write(response.message.content)
             else:
-                f.write("[Sem Resposta do Modelo]")
+                f.write("[No Model Response]")
