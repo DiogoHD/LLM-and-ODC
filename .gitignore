@@ -1,8 +1,8 @@
-ODC IA.xlsx
-
 __pycache__/
 *.py[cod]
 
 *.csv
 prompt.txt
 responses/
+
+graph_test.py
