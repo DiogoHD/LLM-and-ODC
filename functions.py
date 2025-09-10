@@ -26,14 +26,14 @@ def create_message(project: str, prompt: str, sha: str) -> str | None:
     response_format = "Respond only in the format:\nDefect Type: <Defect Type>\nDefect Qualifier: <Defect Qualifier>"
     
     # Write commit in txt file
-    with open("prompt.txt", "w") as p:
+    with open("prompt.txt", "w", encoding="utf-8") as p:
         for f in commit.files:
             p.write(f"\nFile name: {f.filename}\n")
             p.write(f"Changes: {str(f.changes)}\n")
             p.write(f"Patch (diff):\n{f.patch}\n")
 
     # Joins the prompt with the commit and the format intended
-    with open("prompt.txt", "r") as p:
+    with open("prompt.txt", "r", encoding="utf-8") as p:
         content = prompt + "\n" + p.read() + "\n" + response_format  
     
     return content

@@ -34,7 +34,7 @@ for sha_dir in folder.iterdir():    # For every folder and file in the main fold
         for file_path in sha_dir.rglob("*.txt"):
             
             try:
-                text = file_path.read_text()    # pathlib method that reads the file and returns a string
+                text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
             except (OSError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
                 print(f"Error reading {file_path}: {e}")
                 continue
