@@ -1,7 +1,8 @@
 import pandas as pd
 from pathlib import Path
 from itertools import zip_longest
-from functions import extract_defects
+import matplotlib.pyplot as plt
+from functions import extract_defects, create_bar
 
 folder = Path("responses")
 data: list[dict[str, str | None]] = []
@@ -27,5 +28,14 @@ for sha_dir in folder.iterdir():    # For every folder and file in the main fold
                     })
                 
 # DataFrame
-df = pd.DataFrame(data)                 # Create DataFrame
-df.to_csv("output.csv", index=False)    # Export DataFrame to CSV
+df_output = pd.DataFrame(data)                  # Create DataFrame
+df_output.to_csv("output.csv", index=False)     # Export DataFrame to CSV
+df_input = pd.read_csv("input.csv")             # Reads CSV with analyzed vulnerabilities
+
+# Creating Bar Graphs
+fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
+for i, defect in enumerate(["Defect Type", "Defect Qualifier"]):
+    create_bar(df_output, df_input, defect, axes[i])
+
+fig.suptitle("Defect Type and Defect Qualifier Comparison", fontsize=16)         # The Main Title
+plt.show()
