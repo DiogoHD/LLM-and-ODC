@@ -1,4 +1,6 @@
 from github import Github, GithubException
+import ollama
+from pathlib import Path
 
 def create_message(project: str, prompt: str, sha: str) -> str | None:
     "Given a prompt and a sha from a commit, gets the commit and creates a message for the IA"
@@ -23,7 +25,7 @@ def create_message(project: str, prompt: str, sha: str) -> str | None:
         print(f"Error accessing repository '{project}' with commit '{sha}': {e}")       # If it can't access the repo or the commit, ir prints an error
         return None
     
-    response_format = "Respond only in the format:\nDefect Type: <Defect Type>\nDefect Qualifier: <Defect Qualifier>"
+    response_format = "Your response should not provide an explanation and should only contain the following response format for each defect you classify:\nDefect Type: <Defect Type>\nDefect Qualifier: <Defect Qualifier>"
     
     # Write commit in txt file
     with open("prompt.txt", "w", encoding="utf-8") as p:
@@ -37,3 +39,19 @@ def create_message(project: str, prompt: str, sha: str) -> str | None:
         content = prompt + "\n" + p.read() + "\n" + response_format  
     
     return content
+
+def call_model(model: str, content: str, sha_folder: Path) -> None:
+    model_name: str = model.partition(":")[0]    # Take model name before ':' if present
+    try:
+        response: ollama.ChatResponse = ollama.chat(
+            model = model,                                      # Defines which ollama's model is going to be used
+            messages = [{"role": "user", "content": content}],  # Defines who's using the model and what's going to be its content
+            )
+        
+        # Writes response in a text file
+        file_path: Path = sha_folder / f"{model_name}.txt"      # Creates the path to the text folder
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(response.message.content if response.message and response.message.content else "[No Model Response]")
+        
+    except Exception as e:
+        print(f"Error calling model {model} for commit {sha_folder.name}: {e}")
