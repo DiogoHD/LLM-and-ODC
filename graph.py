@@ -11,6 +11,15 @@ def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: p
     counts = counts.reindex(human_counts.index, fill_value=0)       # Only keeps the real defects
     counts["Human"] = human_counts                                  # Adds "Human" column to the table
     
+    # Data in percent
+    percent = counts.copy()
+    totals = counts.sum()
+    for col in percent.columns:
+        percent[col] = (percent[col]/totals[col]*100).round(2)
+
+    print(counts)
+    print(percent)
+    
     # Bar width and x locations
     x = np.arange(len(counts))
     w = 0.15
