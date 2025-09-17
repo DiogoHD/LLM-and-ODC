@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import regex
+from itertools import zip_longest
 
 def make_pattern(name: str) -> regex.Pattern:
     "Creates a regex pattern to extract values associated with the especified field"
@@ -41,16 +42,12 @@ for sha_dir in folder.iterdir():    # For every folder and file in the main fold
             
             defects = extract_defects(text)
         
-            len_t = len(defects["Defect Type"])
-            len_q = len(defects["Defect Qualifier"])
-            number = max(len_t, len_q)
-            
-            for i in range(number):
+            for defect_type, defect_qualifier in zip_longest(defects["Defect Type"], defects["Defect Qualifier"]):
                 data.append({
                     "Sha": sha_dir.name,        # sha_dir is a path, so sha_dir.name only returns the name of the folder and not the entire path
                     "Model": file_path.stem,    # Returns the stem (file name witouth extension)
-                    "Defect Type": defects["Defect Type"][i] if i < len_t else None, 
-                    "Defect Qualifier": defects["Defect Qualifier"][i] if i < len_q else None
+                    "Defect Type": defect_type, 
+                    "Defect Qualifier": defect_qualifier
                     })
                 
 # DataFrame
