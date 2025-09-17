@@ -22,8 +22,8 @@ def extract_defects(text: str) -> dict[str, str | None]:
     "Extracts 'Defect Type' and 'Defect Qualifier' from a given text into a dictionary"
     result = {}
     for defect in ["Defect Type", "Defect Qualifier"]:
-        match = regex.search(make_pattern(defect), text)                        # Finds the defect in the given text, using a especific pattern
-        result[defect] = match.group(1).strip("'\",*()") if match else None     # If found, it strips the defect from unwanted characters, otherwise returns None
+        matches = regex.findall(make_pattern(defect), text)                 # Finds the defect in the given text, using a especific pattern
+        result[defect] = [m.strip("'\",*()") for m in matches]              # If found, it strips the defect from unwanted characters, otherwise returns None
     return result
 
 folder = Path("responses")
@@ -41,12 +41,17 @@ for sha_dir in folder.iterdir():    # For every folder and file in the main fold
             
             defects = extract_defects(text)
         
-            data.append({
-                "Sha": sha_dir.name,        # sha_dir is a path, so sha_dir.name only returns the name of the folder and not the entire path
-                "Model": file_path.stem,    # Returns the stem (file name witouth extension)
-                "Defect Type": defects["Defect Type"], 
-                "Defect Qualifier": defects["Defect Qualifier"]
-                })
+            len_t = len(defects["Defect Type"])
+            len_q = len(defects["Defect Qualifier"])
+            number = max(len_t, len_q)
+            
+            for i in range(number):
+                data.append({
+                    "Sha": sha_dir.name,        # sha_dir is a path, so sha_dir.name only returns the name of the folder and not the entire path
+                    "Model": file_path.stem,    # Returns the stem (file name witouth extension)
+                    "Defect Type": defects["Defect Type"][i] if i < len_t else None, 
+                    "Defect Qualifier": defects["Defect Qualifier"][i] if i < len_q else None
+                    })
                 
 # DataFrame
 df = pd.DataFrame(data)                 # Create DataFrame
