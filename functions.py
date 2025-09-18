@@ -1,4 +1,4 @@
-from github import Github, GithubException
+from github import Github, GithubException, Commit
 import ollama
 from pathlib import Path
 import regex
@@ -7,9 +7,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # main.py 
-def create_message(project: str, prompt: str, sha: str) -> str | None:
-    "Given a prompt and a sha from a commit, gets the commit and creates a message for the IA"
-   
+def get_commit(project: str, sha: str) -> Commit.Commit | None:
+    "Given a prompt and a sha from a commit, gets the commit"
+    
     g = Github()
     
     try:
@@ -25,27 +25,27 @@ def create_message(project: str, prompt: str, sha: str) -> str | None:
                 print(f"Unknown Project '{project}' for commit '{sha}'")
                 return None
         commit = repo.get_commit(sha)       # Gets the commit
+        return commit
         
     except GithubException as e:
         print(f"Error accessing repository '{project}' with commit '{sha}': {e}")       # If it can't access the repo or the commit, ir prints an error
         return None
-    
-    response_format = "Your response should not provide an explanation and should only contain the following response format for each defect you classify:\nDefect Type: <Defect Type>\nDefect Qualifier: <Defect Qualifier>"
-    
-    # Write commit in txt file
-    with open("prompt.txt", "w", encoding="utf-8") as p:
-        for f in commit.files:
-            p.write(f"\nFile name: {f.filename}\n")
-            p.write(f"Changes: {str(f.changes)}\n")
-            p.write(f"Patch (diff):\n{f.patch}\n")
 
-    # Joins the prompt with the commit and the format intended
-    with open("prompt.txt", "r", encoding="utf-8") as p:
-        content = prompt + "\n" + p.read() + "\n" + response_format  
-    
+def create_message(commit: Commit.Commit, prompt: str) -> list[tuple[str, str]]:
+    "Given a commit and initial prompt, creates a message from the IA"
+    if commit is None:
+        return []
+
+    response_format = "Your response should not provide an explanation and should only contain the following response format for each defect you classify in each file:\nDefect Type: <Defect Type>\nDefect Qualifier: <Defect Qualifier>"  
+    # Save prompt for each file from the commit
+    content = []
+    for f in commit.files:
+        file_prompt = f"{prompt}\n\nFile name: {f.filename}\nChanges: {str(f.changes)}\nPatch (diff):\n{f.patch}\n\n{response_format}"      # Joins the prompt with the commit and the format intended
+        content.append((file_prompt, f.filename))
+
     return content
 
-def call_model(model: str, content: str, sha_folder: Path) -> None:
+def call_model(model: str, content: str, folder: Path) -> None:
     "Calls IA model via ollama, runs the especified prompt and stores the response in a text file"
     model_name: str = model.partition(":")[0]    # Take model name before ':' if present
     try:
@@ -55,15 +55,15 @@ def call_model(model: str, content: str, sha_folder: Path) -> None:
             )
         
         # Writes response in a text file
-        file_path: Path = sha_folder / f"{model_name}.txt"      # Creates the path to the text folder
+        file_path: Path = folder / f"{model_name}.txt"      # Creates the path to the text folder
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(response.message.content if response.message and response.message.content else "[No Model Response]")
         
     except Exception as e:
-        print(f"Error calling model {model} for commit {sha_folder.name}: {e}")
+        print(f"Error calling model {model} for commit {folder.name}: {e}")
    
    
-# csv_writer.py     
+# data_analyser.py    
 def make_pattern(name: str) -> regex.Pattern:
     "Creates a regex pattern to extract values associated with the especified field"
     # Uses a raw string so Python can allow escape characters
@@ -72,7 +72,7 @@ def make_pattern(name: str) -> regex.Pattern:
     {{e<=1}}        # Fuzzy Matching - Allows at most 1 typo (only possible using the module regex (impossible with re))
     \s*[:\-–—]\s*   # Allows various separators and it can have 0 or multiple spaces before or after the separator
     (?:\d+\)?\s*)?  # If a number appears before the word that we want [2) or 3] it ignores it
-    [(<[\{{]*       # Allows the word to be between some kind of brackets
+    [*\s(<[\{{]*    # Allows the word to be between some kind of brackets or be in bold
     ([A-Za-z/]+)    # Captures the first word after the string (that only can contain letters and a /)
     """, regex.IGNORECASE | regex.VERBOSE)
     # regex.IGNORECASE makes the search be case-insensitive
@@ -82,13 +82,15 @@ def make_pattern(name: str) -> regex.Pattern:
 
 def extract_defects(text: str) -> dict[str, str | None]:
     "Extracts 'Defect Type' and 'Defect Qualifier' from a given text into a dictionary"
+    
+    text = regex.sub(r"<think>.*?</think>", " ", text, flags=regex.DOTALL)  # Cleans the thinking from the IA's that support it
+    
     result = {}
-    for defect in ["Defect Type", "Defect Qualifier"]:
+    for defect in ["Type", "Qualifier"]:
         matches = regex.findall(make_pattern(defect), text)                 # Finds the defect in the given text, using a especific pattern
         result[defect] = [m.strip("'\",*()") for m in matches]              # If found, it strips the defect from unwanted characters, otherwise returns None
     return result
 
-# graph.py
 def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     "Creates Bar Graph"
     
