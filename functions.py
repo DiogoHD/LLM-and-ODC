@@ -7,8 +7,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # main.py 
-def get_commit(project: str, sha: str) -> Commit.Commit | None:
-    "Given a prompt and a sha from a commit, gets the commit"
+def fetch_commit(project: str, sha: str) -> Commit.Commit | None:
+    "Given a project and a sha from a commit, fetches the commit"
     
     g = Github()
     
