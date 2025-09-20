@@ -8,23 +8,22 @@ folder = Path("responses")
 data: list[dict[str, str | None]] = []
 
 for file_path in folder.rglob("*.txt"):     # For every text file in the main folder, including subfolders
-    if file_path.is_file():                 # Only runs the code if it's a file       
-        try:
-            text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
-        except (OSError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
-            print(f"Error reading {file_path}: {e}")
-            continue
-        
-        defects = extract_defects(text)
+    try:
+        text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
+    except (OSError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
+        print(f"Error reading {file_path}: {e}")
+        continue
     
-        for defect_type, defect_qualifier in zip_longest(defects["Defect Type"], defects["Defect Qualifier"]):
-            data.append({
-                "Sha": file_path.parts[1],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
-                "File Name": file_path.parts[2],
-                "Model": file_path.stem,            # Returns the stem (file name witouth extension)
-                "Defect Type": defect_type, 
-                "Defect Qualifier": defect_qualifier
-                })
+    defects = extract_defects(text)
+
+    for defect_type, defect_qualifier in zip_longest(defects["Defect Type"], defects["Defect Qualifier"]):
+        data.append({
+            "Sha": file_path.parts[1],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
+            "File Name": file_path.parts[2],
+            "Model": file_path.stem,            # Returns the stem (file name witouth extension)
+            "Defect Type": defect_type, 
+            "Defect Qualifier": defect_qualifier
+            })
                 
 # DataFrame
 df_output = pd.DataFrame(data)                  # Create DataFrame
