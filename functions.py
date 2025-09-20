@@ -48,7 +48,7 @@ def create_message(commit: Commit.Commit, prompt: str) -> list[tuple[str, str]]:
     return content
 
 def call_model(model: str, content: str, folder: Path) -> None:
-    "Calls IA model via ollama, runs the especified prompt and stores the response in a text file"
+    "Calls IA model via ollama, runs the specified prompt and stores the response in a text file"
     model_name: str = model.partition(":")[0]    # Take model name before ':' if present
     try:
         response: ollama.ChatResponse = ollama.chat(
@@ -65,12 +65,12 @@ def call_model(model: str, content: str, folder: Path) -> None:
         print(f"Error calling model {model} for file {folder.name} in commit {folder.parent.name}: {e}")
    
    
-# data_analyser.py    
+# data_analyzer.py    
 def make_pattern(name: str) -> regex.Pattern:
-    "Creates a regex pattern to extract values associated with the especified field"
+    "Creates a regex pattern to extract values associated with the specified field"
     # Uses a raw string so Python can allow escape characters
     pattern = regex.compile(rf"""
-    (?:{name})      # Use that word witouth capturing it
+    (?:{name})      # Use that word without capturing it
     {{e<=1}}        # Fuzzy Matching - Allows at most 1 typo (only possible using the module regex (impossible with re))
     \s*[:\-–—]\s*   # Allows various separators and it can have 0 or multiple spaces before or after the separator
     (?:\d+\)?\s*)?  # If a number appears before the word that we want [2) or 3] it ignores it
@@ -89,7 +89,7 @@ def extract_defects(text: str) -> dict[str, str | None]:
     
     result = {}
     for defect in ["Type", "Qualifier"]:
-        matches = regex.findall(make_pattern(defect), text)                 # Finds the defect in the given text, using a especific pattern
+        matches = regex.findall(make_pattern(defect), text)                 # Finds the defect in the given text, using a specific pattern
         result[f"Defect {defect}"] = [m.strip("'\",*()") for m in matches]              # If found, it strips the defect from unwanted characters, otherwise returns None
     return result
 

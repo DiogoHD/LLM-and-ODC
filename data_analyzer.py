@@ -22,7 +22,7 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
         data.append({
             "Sha": file_path.parts[1],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
             "File Name": file_path.parts[2],
-            "Model": file_path.stem,            # Returns the stem (file name witouth extension)
+            "Model": file_path.stem,            # Returns the stem (file name without extension)
             "Defect Type": defect_type, 
             "Defect Qualifier": defect_qualifier
             })

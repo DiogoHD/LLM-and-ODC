@@ -8,7 +8,7 @@ desired_cols = ["V_ID", "Project", "CVE", "V_CLASSIFICATION", "P_COMMIT", "Defec
 # Filters the initial excel
 df = excel[desired_cols].copy()
 
-# Filters with vulnerabilites only with 1 file
+# Filters with vulnerabilities only with 1 file
 df = df[df["# Files"] == 1]
 
 df.to_csv("input.csv", index=False)

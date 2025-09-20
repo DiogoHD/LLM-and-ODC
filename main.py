@@ -19,7 +19,7 @@ for row in df.itertuples(index=False):
     
     sha: str = row.P_COMMIT
     sha_folder: Path = responses_folder / sha       # Folder's path to save IA's response
-    sha_folder.mkdir(parents=True, exist_ok=True)   # Creates the folder if it doens't exist; parents=True creates every needed parent folder if it doesn't exist; exist_ok=True doesn't give a error if the folder already exists
+    sha_folder.mkdir(parents=True, exist_ok=True)   # Creates the folder if it doesn't exist; parents=True creates every needed parent folder if it doesn't exist; exist_ok=True doesn't give a error if the folder already exists
     
     # Create prompt for the IA
     commit: Commit.Commit = fetch_commit(row.Project, sha)
