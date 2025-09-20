@@ -1,10 +1,12 @@
-from github import Github, GithubException, Commit
-import ollama
 from pathlib import Path
-import regex
-import numpy as np
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import numpy as np
+import ollama
+import pandas as pd
+import regex
+from github import Commit, Github, GithubException
+
 
 # main.py 
 def fetch_commit(project: str, sha: str) -> Commit.Commit | None:

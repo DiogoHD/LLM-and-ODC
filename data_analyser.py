@@ -1,8 +1,10 @@
-import pandas as pd
-from pathlib import Path
 from itertools import zip_longest
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-from functions import extract_defects, create_bar, create_crosstab
+import pandas as pd
+
+from functions import create_bar, create_crosstab, extract_defects
 
 folder = Path("responses")
 data: list[dict[str, str | None]] = []
