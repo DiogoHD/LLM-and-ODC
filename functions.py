@@ -60,7 +60,7 @@ def call_model(model: str, content: str, folder: Path) -> None:
             f.write(response.message.content if response.message and response.message.content else "[No Model Response]")
         
     except Exception as e:
-        print(f"Error calling model {model} for commit {folder.name}: {e}")
+        print(f"Error calling model {model} for file {folder.name} in commit {folder.parent.name}: {e}")
    
    
 # data_analyser.py    
@@ -83,12 +83,12 @@ def make_pattern(name: str) -> regex.Pattern:
 def extract_defects(text: str) -> dict[str, str | None]:
     "Extracts 'Defect Type' and 'Defect Qualifier' from a given text into a dictionary"
     
-    text = regex.sub(r"<think>.*?</think>", " ", text, flags=regex.DOTALL)  # Cleans the thinking from the IA's that support it
+    text = regex.sub("<think>.*?(?:</think>|$)", "", text, flags=regex.DOTALL)      # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
     
     result = {}
     for defect in ["Type", "Qualifier"]:
         matches = regex.findall(make_pattern(defect), text)                 # Finds the defect in the given text, using a especific pattern
-        result[defect] = [m.strip("'\",*()") for m in matches]              # If found, it strips the defect from unwanted characters, otherwise returns None
+        result[f"Defect {defect}"] = [m.strip("'\",*()") for m in matches]              # If found, it strips the defect from unwanted characters, otherwise returns None
     return result
 
 def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: plt.Axes) -> None:
@@ -108,10 +108,11 @@ def create_bar(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str, ax: p
 
     print(counts)
     print(percent)
+    print("\n")
     
     # Bar width and x locations
     x = np.arange(len(counts))
-    w = 0.15
+    w = 0.05
     
     # Draw Bars for each Defect Type
     for i, col in enumerate(counts.columns):
