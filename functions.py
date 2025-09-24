@@ -37,14 +37,14 @@ def create_message(commit: Commit.Commit, prompt: str) -> list[tuple[str, str]]:
     "Given a commit and initial prompt, creates a message from the IA"
     if commit is None:
         return []
-
+    
     response_format = "Your response should not provide an explanation and should only contain the following response format for each defect you classify in each file:\nDefect Type: <Defect Type>\nDefect Qualifier: <Defect Qualifier>"  
     # Save prompt for each file from the commit
     content = []
     for f in commit.files:
         file_prompt = f"{prompt}\n\nFile name: {f.filename}\nChanges: {str(f.changes)}\nPatch (diff):\n{f.patch}\n\n{response_format}"      # Joins the prompt with the commit and the format intended
         content.append((file_prompt, f.filename))
-
+    
     return content
 
 def call_model(model: str, content: str, folder: Path) -> None:
@@ -63,8 +63,7 @@ def call_model(model: str, content: str, folder: Path) -> None:
         
     except Exception as e:
         print(f"Error calling model {model} for file {folder.name} in commit {folder.parent.name}: {e}")
-   
-   
+
 # data_analyzer.py    
 def make_pattern(name: str) -> regex.Pattern:
     "Creates a regex pattern to extract values associated with the specified field"
@@ -96,16 +95,16 @@ def extract_defects(text: str) -> dict[str, str | None]:
 def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) -> pd.DataFrame:
     """Creates a table with the frequency of each defect for each IA model and returns it.\n
     It also prints the table the Frequency Table and a Percent Table
-
+    
     Args:
         df_ia (pd.DataFrame): Dataframe with analysis of AI responses
         df_human (pd.DataFrame): Dataframe with human responses
         category (str): The category being analyzed
-
+    
     Returns:
         pd.DataFrame: Cross tabulation with two factors
     """
-
+    
     output = pd.crosstab(df_ia[category], df_ia["Model"])           # Creates a table with the frequency of each defect for each model
     human_counts  = df_human[category].value_counts()               # Counting Human Data
     output = output.reindex(human_counts.index, fill_value=0)       # Only keeps the real defects
@@ -116,7 +115,7 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     totals = output.sum()
     for col in percent.columns:
         percent[col] = (percent[col]/totals[col]*100).round(2)
-
+    
     print(output)
     print(percent)
     print("\n")
@@ -125,7 +124,7 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
 
 def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     """Creates a Bar Graph
-
+    
     Args:
         df (pd.DataFrame): DataFrame with the frequency of each element
         category (str): The graph's title

@@ -17,7 +17,7 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
         continue
     
     defects = extract_defects(text)
-
+    
     for defect_type, defect_qualifier in zip_longest(defects["Defect Type"], defects["Defect Qualifier"]):
         data.append({
             "Sha": file_path.parts[1],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
@@ -26,7 +26,7 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
             "Defect Type": defect_type, 
             "Defect Qualifier": defect_qualifier
             })
-                
+
 # DataFrame
 df_output = pd.DataFrame(data)                  # Create DataFrame
 df_output.to_csv("output.csv", index=False)     # Export DataFrame to CSV
