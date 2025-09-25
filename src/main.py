@@ -12,14 +12,24 @@ prompt = "A defect type can be one of the following categories: 1) Assignment/In
 models_list: ollama.ListResponse = ollama.list()
 models = [m.model for m in models_list.models if m is not None and m.model is not None]
 
-df: pd.DataFrame = pd.read_csv("data/input.csv")       # Reads the csv file
-output_folder: Path = Path("output")
+script_dir = Path(__file__).parent      # Get the folder where this file is located (src/)
+data_dir = script_dir.parent / "data"   # Goes up one level and joins with data folder
+data_dir.mkdir(parents=True, exist_ok=True)
+input_path = data_dir / "input.csv"
+try:
+    df: pd.DataFrame = pd.read_csv(input_path, encoding="utf-8")  # Reads the csv file
+except (OSError, PermissionError, UnicodeDecodeError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+    raise RuntimeError(f"Cannot read the required CSV from {input_path}: {e}") from e
+
+
+output_dir = script_dir.parent / "output"   # Goes up one level and joins with data directory
+output_dir.mkdir(parents=True, exist_ok=True)
 
 for row in df.itertuples(index=False):
     
     sha: str = row.P_COMMIT
-    sha_folder: Path = output_folder / sha       # Folder's path to save IA's response
-    sha_folder.mkdir(parents=True, exist_ok=True)   # Creates the folder if it doesn't exist; parents=True creates every needed parent folder if it doesn't exist; exist_ok=True doesn't give a error if the folder already exists
+    sha_dir: Path = output_dir / sha       # Directory's path to save IA's response
+    sha_dir.mkdir(parents=True, exist_ok=True)   # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
     
     # Create prompt for the IA
     commit: Commit.Commit = fetch_commit(row.Project, sha)
@@ -27,7 +37,7 @@ for row in df.itertuples(index=False):
     
     for message, file_name in content:
         safe_name = file_name.replace("/", "-").replace(".", "_")       # Replaces / and . so it doesn't create multiple directories and a file
-        file_folder: Path = sha_folder / safe_name
-        file_folder.mkdir(parents=True, exist_ok=True)
+        file_dir: Path = sha_dir / safe_name
+        file_dir.mkdir(parents=True, exist_ok=True)
         for model in models:  
-            call_model(model, message, file_folder)
+            call_model(model, message, file_dir)

@@ -27,12 +27,14 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
             "Defect Qualifier": defect_qualifier
             })
 
-# DataFrame
-df_output = pd.DataFrame(data)                      # Create DataFrame
-data_dir = Path("data")
-data_dir.mkdir(exist_ok=True)
 
+df_output = pd.DataFrame(data)          # Create DataFrame
+
+script_dir = Path(__file__).parent      # Get the folder where this file is located (src/)
+data_dir = script_dir.parent / "data"   # Goes up one level and joins with data folder
+data_dir.mkdir(parents=True, exist_ok=True)
 output_path = data_dir / "output.csv"
+
 try:
     df_output.to_csv(output_path, index=False, encoding="utf-8")    # Export DataFrame to CSV
 except (OSError, PermissionError, UnicodeEncodeError) as e:
