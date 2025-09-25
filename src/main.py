@@ -11,7 +11,7 @@ prompt = "A defect type can be one of the following categories: 1) Assignment/In
 
 # IA Models Used
 models_list: ollama.ListResponse = ollama.list()
-models = ["gemma3", "phi3", "codellama", "mistral", "codestral"]
+models = [m.model for m in models_list.models if m is not None and m.model is not None]
 
 script_dir = Path(__file__).parent      # Get the folder where this file is located (src/)
 data_dir = script_dir.parent / "data"   # Goes up one level and joins with data folder
