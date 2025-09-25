@@ -12,7 +12,7 @@ data: list[dict[str, str | None]] = []
 for file_path in folder.rglob("*.txt"):     # For every text file in the main folder, including subfolders
     try:
         text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
-    except (OSError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
+    except (OSError, PermissionError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
         print(f"Error reading {file_path}: {e}")
         continue
     
@@ -28,9 +28,21 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
             })
 
 # DataFrame
-df_output = pd.DataFrame(data)                  # Create DataFrame
-df_output.to_csv("data/output.csv", index=False)     # Export DataFrame to CSV
-df_input = pd.read_csv("data/input.csv")             # Reads CSV with analyzed vulnerabilities
+df_output = pd.DataFrame(data)                      # Create DataFrame
+data_dir = Path("data")
+data_dir.mkdir(exist_ok=True)
+
+output_path = data_dir / "output.csv"
+try:
+    df_output.to_csv(output_path, index=False, encoding="utf-8")    # Export DataFrame to CSV
+except (OSError, PermissionError, UnicodeEncodeError) as e:
+    raise RuntimeError(f"Failed to write CSV to {output_path}: {e}") from e
+
+input_path = data_dir / "input.csv"
+try:
+    df_input = pd.read_csv(input_path, encoding="utf-8")            # Reads CSV with analyzed vulnerabilities
+except (OSError, PermissionError, UnicodeDecodeError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+    raise RuntimeError(f"Cannot read the required CSV from {input_path}: {e}") from e
 
 # Creating Bar Graphs
 fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Bar Graph - Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
