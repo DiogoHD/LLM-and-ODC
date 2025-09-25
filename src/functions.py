@@ -69,6 +69,35 @@ def call_model(model: str, content: str, folder: Path) -> None:
     except Exception as e:
         print(f"Error calling model {model} for file {folder.name} in commit {folder.parent.name}: {e}")
 
+def process_commit(row, prompt: str, models: list[str]) -> None:
+    """
+    Function used to work with ThreadPoolExecutor() from concurrent.future
+    
+    Args:
+        row (pd.NamedTuple): The return value of itertuples()
+        prompt (str): The prompt for the IA
+        models (list[str]): A list of the IA models downloaded via ollama
+    """
+    script_dir = Path(__file__).parent          # Get the folder where this file is located (src/)
+    output_dir = script_dir.parent / "test"   # Goes up one level and joins with data directory
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    sha: str = row.P_COMMIT
+    sha_dir: Path = output_dir / sha            # Directory's path to save IA's response
+    sha_dir.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
+    
+    # Create prompt for the IA
+    commit: Commit.Commit = fetch_commit(row.Project, sha)
+    content = create_message(commit, prompt)
+    
+    for message, file_name in content:
+        safe_name = file_name.replace("/", "-").replace(".", "_")       # Replaces / and . so it doesn't create multiple directories and a file
+        file_dir: Path = sha_dir / safe_name
+        file_dir.mkdir(parents=True, exist_ok=True)
+        for model in models:  
+            call_model(model, message, file_dir)
+
+
 # data_analyzer.py    
 def make_pattern(name: str) -> regex.Pattern:
     "Creates a regex pattern to extract values associated with the specified field"
