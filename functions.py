@@ -107,7 +107,8 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     """
     
     output = pd.crosstab(df_ia[category], df_ia["Model"])           # Creates a table with the frequency of each defect for each model
-    human_counts  = df_human[category].value_counts()               # Counting Human Data
+    human_counts = df_human[df_human["P_COMMIT"].isin(df_ia["Sha"])]
+    human_counts = human_counts[category].value_counts()               # Counting Human Data
     output = output.reindex(human_counts.index, fill_value=0)       # Only keeps the real defects
     output["Human"] = human_counts                                  # Adds "Human" column to the table
     
