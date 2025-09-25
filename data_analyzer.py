@@ -4,7 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from functions import create_bar, create_crosstab, extract_defects, create_pie
+from functions import create_bar, create_crosstab, create_pie, extract_defects
 
 folder = Path("responses")
 data: list[dict[str, str | None]] = []
