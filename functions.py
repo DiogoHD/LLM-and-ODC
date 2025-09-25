@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -151,3 +152,40 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     ax.yaxis.grid(True, linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
     ax.set_title(category)
     ax.legend()
+
+def create_pie(df: pd.DataFrame) -> None:
+    """Creates multiple Pie Charts using matplotlib to show the proportion between the responses of each IA.
+    
+    Args:
+        df (pd.DataFrame): DataFrame with the frequency of each IA response
+    """
+    
+    # Only writes percent if it is greater than zero
+    def func(pct):
+        return f'{pct:.1f}%' if pct > 0 else '' 
+    
+    n = len(df.columns)
+    ncols = math.ceil(math.sqrt(n))     # Rounds the square root up
+    nrows = math.ceil(n / ncols)        # 
+    
+    fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 4*nrows), constrained_layout=True, num="Pie Chart - " + df.index.name, sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
+    axs: np.ndarray[plt.Axes] = axs.flatten()       # Transforms the 2D matrix in a 1D matrix
+    wedges_all = []         # To store the wedges of all graphs for a global legend 
+    
+    labels = df.index.tolist()
+    cmap = plt.get_cmap("tab20")    # palette with up to 20 different colors
+    colors_map = {label: cmap(i / len(labels)) for i, label in enumerate(labels)}
+    
+    for index, model in enumerate(df.columns):
+        frequency = df.loc[:, model]
+        frequency = frequency[frequency > 0]
+        
+        axs[index].pie(frequency, labels=None, autopct=func, colors=[colors_map[i] for i in frequency.index])
+        axs[index].set_title(model)
+    
+    for j in range(len(df.columns), len(axs)):
+        fig.delaxes(axs[j])
+    
+    fig.suptitle(df.index.name)
+    legend_handles = [plt.Line2D([0], [0], color=colors_map[label], lw=4) for label in labels]
+    fig.legend(legend_handles, labels, title=df.index.name, loc="lower right")

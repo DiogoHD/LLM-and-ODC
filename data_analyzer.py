@@ -4,7 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from functions import create_bar, create_crosstab, extract_defects
+from functions import create_bar, create_crosstab, extract_defects, create_pie
 
 folder = Path("responses")
 data: list[dict[str, str | None]] = []
@@ -33,10 +33,10 @@ df_output.to_csv("output.csv", index=False)     # Export DataFrame to CSV
 df_input = pd.read_csv("input.csv")             # Reads CSV with analyzed vulnerabilities
 
 # Creating Bar Graphs
-fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
+fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Bar Graph - Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
 for i, defect in enumerate(["Defect Type", "Defect Qualifier"]):
     crosstab = create_crosstab(df_output, df_input, defect)
     create_bar(crosstab, defect, axes[i])
+    create_pie(crosstab)
 
-fig.suptitle("Defect Type and Defect Qualifier Comparison", fontsize=16)         # The Main Title
 plt.show()
