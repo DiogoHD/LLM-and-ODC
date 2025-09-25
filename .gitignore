@@ -1,8 +1,11 @@
+# Python cache and compiled files
 __pycache__/
 *.py[cod]
 
+# Folders
+output/
+test/
+
+# Files
 *.csv
 prompt.txt
-responses/
-
-graph_test.py

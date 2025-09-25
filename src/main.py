@@ -12,13 +12,13 @@ prompt = "A defect type can be one of the following categories: 1) Assignment/In
 models_list: ollama.ListResponse = ollama.list()
 models = [m.model for m in models_list.models if m is not None and m.model is not None]
 
-df: pd.DataFrame = pd.read_csv("input.csv")       # Reads the csv file
-responses_folder: Path = Path("responses")
+df: pd.DataFrame = pd.read_csv("data/input.csv")       # Reads the csv file
+output_folder: Path = Path("output")
 
 for row in df.itertuples(index=False):
     
     sha: str = row.P_COMMIT
-    sha_folder: Path = responses_folder / sha       # Folder's path to save IA's response
+    sha_folder: Path = output_folder / sha       # Folder's path to save IA's response
     sha_folder.mkdir(parents=True, exist_ok=True)   # Creates the folder if it doesn't exist; parents=True creates every needed parent folder if it doesn't exist; exist_ok=True doesn't give a error if the folder already exists
     
     # Create prompt for the IA

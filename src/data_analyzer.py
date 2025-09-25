@@ -6,7 +6,7 @@ import pandas as pd
 
 from functions import create_bar, create_crosstab, create_pie, extract_defects
 
-folder = Path("responses")
+folder = Path("output")
 data: list[dict[str, str | None]] = []
 
 for file_path in folder.rglob("*.txt"):     # For every text file in the main folder, including subfolders
@@ -29,8 +29,8 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
 
 # DataFrame
 df_output = pd.DataFrame(data)                  # Create DataFrame
-df_output.to_csv("output.csv", index=False)     # Export DataFrame to CSV
-df_input = pd.read_csv("input.csv")             # Reads CSV with analyzed vulnerabilities
+df_output.to_csv("data/output.csv", index=False)     # Export DataFrame to CSV
+df_input = pd.read_csv("data/input.csv")             # Reads CSV with analyzed vulnerabilities
 
 # Creating Bar Graphs
 fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Bar Graph - Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
