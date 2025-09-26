@@ -18,13 +18,21 @@ def make_pattern(name: str) -> regex.Pattern:
     
     return pattern
 
-def extract_defects(text: str) -> dict[str, str | None]:
+def extract_defects(text: str) -> dict[str, list[str]]:
+    """Extracts all the defects that match the pattern from the given string
+    
+    Args:
+        text (str): The string to be analyzed
+        
+    Returns:
+        dict[str, str | None]: A dictionary where the key is the defect and the value is a list with the name of the defects found
+    """
     "Extracts 'Defect Type' and 'Defect Qualifier' from a given text into a dictionary"
     
-    text = regex.sub("<think>.*?(?:</think>|$)", "", text, flags=regex.DOTALL)      # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
+    text = regex.sub("<think>.*?(?:</think>|$)", "", text, flags=regex.DOTALL)  # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
     
     result = {}
     for defect in ["Type", "Qualifier"]:
-        matches = regex.findall(make_pattern(defect), text)                 # Finds the defect in the given text, using a specific pattern
-        result[f"Defect {defect}"] = [m.strip("'\",*()") for m in matches]              # If found, it strips the defect from unwanted characters, otherwise returns None
+        matches = regex.findall(make_pattern(defect), text)                     # Finds the defect in the given text, using a specific pattern
+        result[f"Defect {defect}"] = [m.strip("'\",*()") for m in matches]      # If found, it strips the defect from unwanted characters, otherwise returns None
     return result
