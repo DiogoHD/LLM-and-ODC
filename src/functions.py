@@ -200,11 +200,10 @@ def create_pie(df: pd.DataFrame) -> None:
     
     n = len(df.columns)
     ncols = math.ceil(math.sqrt(n))     # Rounds the square root up
-    nrows = math.ceil(n / ncols)        # 
+    nrows = math.ceil(n / ncols)
     
     fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 4*nrows), constrained_layout=True, num="Pie Chart - " + df.index.name, sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
     axs: np.ndarray[plt.Axes] = axs.flatten()       # Transforms the 2D matrix in a 1D matrix
-    wedges_all = []         # To store the wedges of all graphs for a global legend 
     
     labels = df.index.tolist()
     cmap = plt.get_cmap("tab20")    # palette with up to 20 different colors
