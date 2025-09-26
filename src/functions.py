@@ -98,7 +98,39 @@ def process_commit(row, prompt: str, models: list[str]) -> None:
             call_model(model, message, file_dir)
 
 
-# data_analyzer.py    
+# data_analyzer.py
+
+def excel_reader(name: str) -> pd.DataFrame:
+    """Accesses a excel in the data folder and converts it to a pandas dataframe
+    
+    Args:
+        name (str): The name of the excel file without extension
+        
+    Raises:
+        RuntimeError: If it can't open the excel file
+        
+    Returns:
+        pd.DataFrame: A pandas dataframe
+    """
+    
+    # Accessing the location of the excel
+    script_dir = Path(__file__).parent          # Get the folder where this file is located (src/)
+    data_dir = script_dir.parent / "data"       # Goes up one level and joins with data directory
+    data_dir.mkdir(parents=True, exist_ok=True)
+    file_path = data_dir / f"{name}.xlsx"
+    
+    # Opening excel
+    try:
+        df = pd.read_excel(file_path, sheet_name=0, header=1)
+    except Exception as e:
+        raise RuntimeError(f"Failed to open excel file in {file_path}: {e}") from e
+    
+    desired_cols = ["V_ID", "Project", "CVE", "V_CLASSIFICATION", "P_COMMIT", "Defect Type", "Defect Qualifier", "# Files", "Filenames"]
+    df = df[desired_cols]
+    
+    return df
+
+
 def make_pattern(name: str) -> regex.Pattern:
     "Creates a regex pattern to extract values associated with the specified field"
     # Uses a raw string so Python can allow escape characters

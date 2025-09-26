@@ -4,7 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from functions import create_bar, create_crosstab, create_pie, extract_defects
+from functions import create_bar, create_crosstab, create_pie, excel_reader, extract_defects
 
 folder = Path("output")
 data: list[dict[str, str | None]] = []
@@ -40,11 +40,7 @@ try:
 except (OSError, PermissionError, UnicodeEncodeError) as e:
     raise RuntimeError(f"Failed to write CSV to {output_path}: {e}") from e
 
-input_path = data_dir / "input.csv"
-try:
-    df_input = pd.read_csv(input_path, encoding="utf-8")            # Reads CSV with analyzed vulnerabilities
-except (OSError, PermissionError, UnicodeDecodeError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
-    raise RuntimeError(f"Cannot read the required CSV from {input_path}: {e}") from e
+df_input = excel_reader("vulnerabilities")
 
 # Creating Bar Graphs
 fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Bar Graph - Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
