@@ -54,8 +54,8 @@ def process_commit(row, prompt: str, models: list[str]) -> None:
         prompt (str): The prompt for the IA
         models (list[str]): A list of the IA models downloaded via ollama
     """
-    script_dir = Path(__file__).parent          # Get the folder where this file is located (src/)
-    output_dir = script_dir.parent / "output"   # Goes up one level and joins with data directory
+    root_dir = Path(__file__).parent.parent.parent  # Get the root folder
+    output_dir = root_dir / "output"                # Joins with output directory
     output_dir.mkdir(parents=True, exist_ok=True)
     
     sha: str = row.P_COMMIT

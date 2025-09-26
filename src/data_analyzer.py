@@ -4,8 +4,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from data_utils import create_bar, create_crosstab, create_pie, excel_reader
-from regex_utils import extract_defects
+from functions.data_utils import create_bar, create_crosstab, create_pie, excel_reader
+from functions.regex_utils import extract_defects
 
 folder = Path("output")
 data: list[dict[str, str | None]] = []

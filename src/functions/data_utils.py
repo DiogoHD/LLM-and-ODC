@@ -20,8 +20,8 @@ def excel_reader(name: str) -> pd.DataFrame:
     """
     
     # Accessing the location of the excel
-    script_dir = Path(__file__).parent          # Get the folder where this file is located (src/)
-    data_dir = script_dir.parent / "data"       # Goes up one level and joins with data directory
+    root_dir = Path(__file__).parent.parent.parent  # Get the root folder
+    data_dir = root_dir / "data"                    # Joins with data directory
     data_dir.mkdir(parents=True, exist_ok=True)
     file_path = data_dir / f"{name}.xlsx"
     
