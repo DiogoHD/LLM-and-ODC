@@ -171,23 +171,23 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
         pd.DataFrame: Cross tabulation with two factors
     """
     
-    output = pd.crosstab(df_ia[category], df_ia["Model"])           # Creates a table with the frequency of each defect for each model
+    df = pd.crosstab(df_ia[category], df_ia["Model"])           # Creates a table with the frequency of each defect for each model
     human_counts = df_human[df_human["P_COMMIT"].isin(df_ia["Sha"])]
     human_counts = human_counts[category].value_counts()               # Counting Human Data
-    output = output.reindex(human_counts.index, fill_value=0)       # Only keeps the real defects
-    output["Human"] = human_counts                                  # Adds "Human" column to the table
+    df = df.reindex(human_counts.index, fill_value=0)       # Only keeps the real defects
+    df["Human"] = human_counts                                  # Adds "Human" column to the table
     
     # Data in percent
-    percent = output.copy()
-    totals = output.sum()
+    percent = df.copy()
+    totals = df.sum()
     for col in percent.columns:
         percent[col] = (percent[col]/totals[col]*100).round(2)
     
-    print(output)
+    print(df)
     print(percent)
     print("\n")
     
-    return output
+    return df
 
 def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     """Creates a Bar Graph
