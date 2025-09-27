@@ -5,7 +5,7 @@ from github import Commit, Github, GithubException
 
 
 # main.py 
-def fetch_commit(project: str, sha: str) -> Commit.Commit | None:
+def fetch_commit(project: str, sha: str, g: Github) -> Commit.Commit | None:
     """Given a project and a sha from a commit, fetches the commit
     
     Args:
@@ -16,21 +16,21 @@ def fetch_commit(project: str, sha: str) -> Commit.Commit | None:
         Commit.Commit | None: The commit from github
     """
     
-    g = Github()
+    REPOS = {
+    "Linux": "torvalds/linux",
+    "Mozilla": "mozilla/gecko-dev",
+    "Xen": "xen-project/xen"
+    }
     
     try:
-        # Gets the repository
-        match project:
-            case "Linux":
-                repo = g.get_repo("torvalds/linux")
-            case "Mozilla":
-                repo = g.get_repo("mozilla/gecko-dev")
-            case "Xen":
-                repo = g.get_repo("xen-project/xen")
-            case _:
-                print(f"Unknown Project '{project}' for commit '{sha}'")
-                return None
-        commit = repo.get_commit(sha)       # Gets the commit
+        
+        repo_name = REPOS.get(project)      # Gets the name of the repository
+        if not repo_name:
+            print(f"Unknown Project '{project}' for commit '{sha}'")
+            return None
+        
+        repo = g.get_repo(repo_name)        # Gets the repository from Github
+        commit = repo.get_commit(sha)       # Gets the commit from Github
         return commit
         
     except GithubException as e:
@@ -56,13 +56,13 @@ def create_message(commit: Commit.Commit, instruction: str) -> list[tuple[str, s
     # Save prompt for each file from the commit
     prompts = []
     for f in commit.files:
-        file_prompt = f"{instruction}\n\nFile name: {f.filename}\nChanges: {str(f.changes)}\nPatch (diff):\n{f.patch}\n\n{response_format}"      # Joins the prompt with the commit and the format intended
+        file_prompt = f"{instruction}\n\nFile name: {f.filename}\nChanges: {f.changes}\nPatch (diff):\n{f.patch}\n\n{response_format}"      # Joins the prompt with the commit and the format intended
         prompts.append((file_prompt, f.filename))
     
     return prompts
 
 
-def process_commit(row, prompt: str, models: list[str]) -> None:
+def process_commit(row, prompt: str, models: list[str], g: Github) -> None:
     """
     Function used to work with ThreadPoolExecutor() from concurrent.future
     
@@ -81,7 +81,7 @@ def process_commit(row, prompt: str, models: list[str]) -> None:
     sha_dir.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
     
     # Create prompt for the IA
-    commit: Commit.Commit = fetch_commit(row.Project, sha)
+    commit: Commit.Commit = fetch_commit(row.Project, sha, g)
     content = create_message(commit, prompt)
     
     for message, file_name in content:
