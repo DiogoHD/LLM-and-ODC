@@ -72,7 +72,8 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     
     # Data in percent
     percent = ((df_final / df_final.sum())*100).round(2)
-
+    
+    print("\n\n\n")
     print("Frequency Table:")
     print(df_final)
     print("\nPercent Table:")
@@ -89,13 +90,18 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
         ax (plt.Axes): Graph's position in the subplot
     """
     
+    # Generate colors from tab20 for each column
+    cmap = plt.cm.get_cmap("tab20")
+    n_cols = len(df.columns)
+    colors = [cmap(i / max(1, n_cols-1)) for i in range(n_cols)]  # evenly spaced
+    
     # Bar width and x locations
     x = np.arange(len(df))
-    w = 0.05
+    w = 0.8 / n_cols
     
     # Draw Bars for each Defect Type
     for i, col in enumerate(df.columns):
-        bars = ax.bar(x + i*w, df[col], width=w, label=col)
+        bars = ax.bar(x + i*w, df[col], width=w, label=col, color=colors[i])
         ax.bar_label(bars, fontsize=8)
     
     # Adjust Y-axis limit to make room for values
@@ -129,8 +135,8 @@ def create_pie(df: pd.DataFrame) -> None:
     axs: np.ndarray[plt.Axes] = axs.flatten()       # Transforms the 2D matrix in a 1D matrix
     
     labels = df.index.tolist()
-    cmap = plt.get_cmap("tab20")    # palette with up to 20 different colors
-    colors_map = {label: cmap(i / len(labels)) for i, label in enumerate(labels)}
+    cmap = plt.get_cmap("tab20")    # Palette with up to 20 different colors
+    colors_map = {label: cmap(i / max(1, len(labels)-1)) for i, label in enumerate(labels)}
     
     for index, model in enumerate(df.columns):
         frequency = df.loc[:, model]
