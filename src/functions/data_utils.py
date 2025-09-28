@@ -104,10 +104,6 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
         bars = ax.bar(x + i*w, df[col], width=w, label=col, color=colors[i])
         ax.bar_label(bars, fontsize=8)
     
-    # Adjust Y-axis limit to make room for values
-    ymax = df.values.max()      # counts.values returns only the numeric data in the DataFrame; counts.values.max() finds the max value in that array
-    ax.set_ylim(0, ymax * 1.10)     # 10% off 
-    
     # Labels
     ax.set_xticks(x + w*(df.shape[1]-1)/2)          # counts.shape returns a tuple with the number of lines and columns (lines, columns); -1)/2 is used to center the text
     ax.set_xticklabels(df.index, rotation=0, ha="center")
@@ -131,7 +127,7 @@ def create_pie(df: pd.DataFrame) -> None:
     ncols = math.ceil(math.sqrt(n))     # Rounds the square root up
     nrows = math.ceil(n / ncols)
     
-    fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 4*nrows), constrained_layout=True, num="Pie Chart - " + df.index.name, sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends
+    fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 4*nrows), num="Pie Chart - " + df.index.name, sharey=True)
     axs: np.ndarray[plt.Axes] = axs.flatten()       # Transforms the 2D matrix in a 1D matrix
     
     labels = df.index.tolist()
