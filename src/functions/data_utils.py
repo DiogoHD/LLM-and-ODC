@@ -27,7 +27,7 @@ def excel_reader(name: str) -> pd.DataFrame:
     
     # Opening excel
     try:
-        df = pd.read_excel(file_path, sheet_name=0, header=1)
+        df = pd.read_excel(file_path, sheet_name=0, header=1, engine="openpyxl")
     except Exception as e:
         raise RuntimeError(f"Failed to open excel file in {file_path}: {e}") from e
     
@@ -105,10 +105,10 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
         ax.bar_label(bars, fontsize=8)
     
     # Labels
-    ax.set_xticks(x + w*(df.shape[1]-1)/2)          # counts.shape returns a tuple with the number of lines and columns (lines, columns); -1)/2 is used to center the text
+    ax.set_xticks(x + w*(n_cols-1)/2)          # x + w*(n_cols-1)/2 is used to center the text
     ax.set_xticklabels(df.index, rotation=0, ha="center")
     ax.set_ylabel("Frequency")
-    ax.yaxis.grid(True, linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
+    ax.grid(axis="y", linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
     ax.set_title(category)
     ax.legend()
 
@@ -124,10 +124,10 @@ def create_pie(df: pd.DataFrame) -> None:
         return f'{pct:.1f}%' if pct > 0 else '' 
     
     n = len(df.columns)
-    ncols = math.ceil(math.sqrt(n))     # Rounds the square root up
-    nrows = math.ceil(n / ncols)
+    n_cols = math.ceil(math.sqrt(n))     # Rounds the square root up
+    n_rows = math.ceil(n / n_cols)
     
-    fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 4*nrows), num="Pie Chart - " + df.index.name, sharey=True)
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(4*n_cols, 4*n_rows), num="Pie Chart - " + df.index.name, sharey=True)
     axs: np.ndarray[plt.Axes] = axs.flatten()       # Transforms the 2D matrix in a 1D matrix
     
     labels = df.index.tolist()
@@ -141,7 +141,7 @@ def create_pie(df: pd.DataFrame) -> None:
         axs[index].pie(frequency, labels=None, autopct=func, colors=[colors_map[i] for i in frequency.index])
         axs[index].set_title(model)
     
-    for j in range(len(df.columns), len(axs)):
+    for j in range(n, len(axs)):
         fig.delaxes(axs[j])
     
     fig.suptitle(df.index.name)
