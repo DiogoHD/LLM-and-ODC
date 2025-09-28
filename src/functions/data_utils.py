@@ -49,23 +49,36 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
         pd.DataFrame: Cross tabulation with two factors
     """
     
-    df = pd.crosstab(df_ia[category], df_ia["Model"])           # Creates a table with the frequency of each defect for each model
-    human_counts = df_human[df_human["P_COMMIT"].isin(df_ia["Sha"])]
-    human_counts = human_counts[category].value_counts()               # Counting Human Data
-    df = df.reindex(human_counts.index, fill_value=0)       # Only keeps the real defects
-    df["Human"] = human_counts                                  # Adds "Human" column to the table
+    df = pd.crosstab(df_ia[category], df_ia["Model"])                   # Creates a table with the frequency of each defect for each model
+    human_counts = df_human[df_human["P_COMMIT"].isin(df_ia["Sha"])]    # Only gets the defects classification from the humans that were analyzed by the IA
+    human_counts = human_counts[category].value_counts()                # Counting Human Data
+    
+    valid_idx = human_counts.index      # Allowed defects
+    # Divides the dataframe in two dataframes: One with the allowed defects and the other with the strange ones
+    df_valid = df.loc[df.index.isin(valid_idx)]
+    df_other = df.loc[~df.index.isin(valid_idx)]
+        
+    # Sums the rest in a single line
+    if not df_other.empty:
+        df_other = pd.DataFrame(df_other.sum()).T   # Sums all the lines in the rest Dataframe, creating a Series, then it converts into a Dataframe and transposes it
+        df_other.index = ["Other"]                  # Names the line to Other
+        df_final = pd.concat([df_valid, df_other])  # Concatenates the df_valid with the df_other
+    else:
+        df_final = df_valid
+        
+    
+    df_final["Human"] = human_counts.reindex(df_final.index, fill_value=0).astype(int)   # Adds "Human" column to the Dataframe
+    df_final.index.name = category  # Define index name
     
     # Data in percent
-    percent = df.copy()
-    totals = df.sum()
-    for col in percent.columns:
-        percent[col] = (percent[col]/totals[col]*100).round(2)
-    
-    print(df)
+    percent = ((df_final / df_final.sum())*100).round(2)
+
+    print("Frequency Table:")
+    print(df_final)
+    print("\nPercent Table:")
     print(percent)
-    print("\n")
     
-    return df
+    return df_final
 
 def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     """Creates a Bar Graph
