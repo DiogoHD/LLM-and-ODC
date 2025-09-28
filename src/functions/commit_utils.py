@@ -77,17 +77,19 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
     model_name: str = model.partition(":")[0]       # Take model name before ':' if present
     file_path: Path = folder / f"{model_name}.txt"  # Creates the path to the text folder
     
-    if not file_path.exists():
-        try:
-            response: ollama.ChatResponse = ollama.chat(
-                model = model,                                      # Defines which ollama's model is going to be used
-                messages = [{"role": "user", "content": prompt}],   # Defines who's using the model and what's going to be its content
-                )
-            
-            file_path.write_text(response.message.content, encoding="utf-8")
-            
-        except Exception as e:
-            print(f"Error calling model {model} or writing file {file_path}: {e}")
+    if file_path.exists():
+        return
+    
+    try:
+        response: ollama.ChatResponse = ollama.chat(
+            model = model,                                      # Defines which ollama's model is going to be used
+            messages = [{"role": "user", "content": prompt}],   # Defines who's using the model and what's going to be its content
+            )
+        
+        file_path.write_text(response.message.content, encoding="utf-8")
+        
+    except Exception as e:
+        print(f"Error calling model {model} or writing file {file_path}: {e}")
 
 
 def process_commit(row, prompt: str, models: list[str], g: Github) -> None:
