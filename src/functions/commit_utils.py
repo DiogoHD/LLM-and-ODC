@@ -62,6 +62,34 @@ def create_message(commit: Commit.Commit, instruction: str) -> list[tuple[str, s
     return prompts
 
 
+def call_model(model: str, prompt: str, folder: Path) -> None:
+    """Calls IA model via ollama, runs the specified prompt and stores the response in a text file
+    
+    Args:
+        model (str): The name of the IA model that will be run
+        prompt (str): The message that will be given to the IA
+        folder (Path): The folder where the text file will be stored in
+        
+    Raises:
+        RuntimeError: If the writing of the IA response in a text file doesn't work
+    """
+    
+    model_name: str = model.partition(":")[0]       # Take model name before ':' if present
+    file_path: Path = folder / f"{model_name}.txt"  # Creates the path to the text folder
+    
+    if not file_path.exists():
+        try:
+            response: ollama.ChatResponse = ollama.chat(
+                model = model,                                      # Defines which ollama's model is going to be used
+                messages = [{"role": "user", "content": prompt}],   # Defines who's using the model and what's going to be its content
+                )
+            
+            file_path.write_text(response.message.content, encoding="utf-8")
+            
+        except Exception as e:
+            print(f"Error calling model {model} or writing file {file_path}: {e}")
+
+
 def process_commit(row, prompt: str, models: list[str], g: Github) -> None:
     """
     Function used to work with ThreadPoolExecutor() from concurrent.future
@@ -90,35 +118,3 @@ def process_commit(row, prompt: str, models: list[str], g: Github) -> None:
         file_dir.mkdir(parents=True, exist_ok=True)
         for model in models:  
             call_model(model, message, file_dir)
-
-
-def call_model(model: str, prompt: str, folder: Path) -> None:
-    """Calls IA model via ollama, runs the specified prompt and stores the response in a text file
-    
-    Args:
-        model (str): The name of the IA model that will be run
-        prompt (str): The message that will be given to the IA
-        folder (Path): The folder where the text file will be stored in
-        
-    Raises:
-        RuntimeError: If the writing of the IA response in a text file doesn't work
-    """
-    
-    model_name: str = model.partition(":")[0]    # Take model name before ':' if present
-    
-    try:
-        response: ollama.ChatResponse = ollama.chat(
-            model = model,                                      # Defines which ollama's model is going to be used
-            messages = [{"role": "user", "content": prompt}],   # Defines who's using the model and what's going to be its content
-            )
-        
-        # Writes response in a text file
-        file_path: Path = folder / f"{model_name}.txt"      # Creates the path to the text folder
-        try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(response.message.content if response.message and response.message.content else "[No Model Response]")
-        except (OSError, PermissionError, UnicodeEncodeError) as e:
-            raise RuntimeError(f"Failed to write text file to {file_path}: {e}") from e
-        
-    except Exception as e:
-        print(f"Error calling model {model} for file {folder.name} in commit {folder.parent.name}: {e}")
