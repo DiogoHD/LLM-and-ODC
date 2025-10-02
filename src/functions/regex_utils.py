@@ -29,7 +29,21 @@ def remove_think_blocks(text: str) -> str:
         return text[end + len("</think>"):]
 
 def make_pattern(name: str) -> regex.Pattern:
-    "Creates a regex pattern to extract values associated with the specified field"
+    """Generates a regex pattern to find a specific defect type in text, 
+    allowing fuzzy matching and various separators.
+    
+    Args:
+        name (str): The defect type or keyword to match in the text.
+        
+    Returns:
+        regex.Pattern: A compiled regular expression object that can be used 
+        to search for the given defect in a string. The pattern allows:
+            - At most 1 typo (fuzzy matching using the `regex` module)
+            - Optional preceding numbers before the defect
+            - Various separators like colon, dash, or en/em dashes
+            - Optional brackets or formatting characters around the defect
+            - Matches only letters and slashes in the defect name
+    """   
     
     # Uses a raw string so Python can allow escape characters
     pattern = regex.compile(rf"""
@@ -46,15 +60,17 @@ def make_pattern(name: str) -> regex.Pattern:
     return pattern
 
 def extract_defects(text: str) -> dict[str, list[str]]:
-    """Extracts all the defects that match the pattern from the given string
+    """Extracts defects of specific types from a given text.
     
     Args:
-        text (str): The string to be analyzed
+        text (str): The input string to be analyzed
         
     Returns:
-        dict[str, str | None]: A dictionary where the key is the defect and the value is a list with the name of the defects found
+        dict[str, list[str]]: A dictionary mapping each defect type 
+        (e.g., 'Defect Type', 'Defect Qualifier') to a list of strings 
+        representing the defects found in the text. 
+        If no defects are found, the corresponding list is empty.
     """
-    "Extracts 'Defect Type' and 'Defect Qualifier' from a given text into a dictionary"
     
     text = remove_think_blocks(text)  # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
     
