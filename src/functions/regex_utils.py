@@ -1,6 +1,33 @@
 import regex
 
 
+def remove_think_blocks(text: str) -> str:
+    """Removes the think block from a given text
+    
+    Args:
+        text (str): The input string that may contain '<think>' and '</think>' blocks.
+    
+    Returns:
+        str: The string with the '<think>' block(s) removed according to the rules:
+            - If both opening and closing tags exist, removes from the first '<think>' to the last '</think>'.
+            - If only the opening tag exists, removes from the first '<think>' to the end of the string.
+            - If only the closing tag exists, removes from the beginning of the string until the last '</think>'
+            - If neither a '<think>' tag nor a '</think> tag exists, returns the original string unchanged.
+    """
+    start = text.find("<think>")
+    end = text.rfind("</think>")
+    
+    if end == -1:
+        # If there's no think block, returns the entire text
+        if start == -1:
+            return text
+        # If there's <think> but there isn't </think>, cuts everything
+        else:
+            return ""
+    else:
+        # If there's at least one </think> tag, cuts until the last </think>, returning everything but the think block
+        return text[end + len("</think>"):]
+
 def make_pattern(name: str) -> regex.Pattern:
     "Creates a regex pattern to extract values associated with the specified field"
     
@@ -29,7 +56,7 @@ def extract_defects(text: str) -> dict[str, list[str]]:
     """
     "Extracts 'Defect Type' and 'Defect Qualifier' from a given text into a dictionary"
     
-    text = regex.sub("<think>.*?(?:</think>|$)", "", text, flags=regex.DOTALL)  # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
+    text = remove_think_blocks(text)  # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
     
     result = {}
     for defect in ["Type", "Qualifier"]:
