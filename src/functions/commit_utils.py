@@ -1,17 +1,19 @@
 from pathlib import Path
 
 import ollama
-from github import Commit, Github, GithubException
+from github import Commit, Github, GithubException, Repository
 
 
 # main.py 
-def fetch_commit(project: str, sha: str, g: Github) -> Commit.Commit | None:
+def fetch_commit(project: str, sha: str, g: Github, repo_cache: dict[str, Repository.Repository]) -> Commit.Commit | None:
     """Given a project and a sha from a commit, fetches the commit
     
     Args:
         project (str): The name of the project
         sha (str): The sha of the commit (also called P_COMMIT)
-        
+        g (Github): The instance for github
+        repo_cache (dict[str, Repository.Repository]): A dictionary with the repositories already loaded, so it doesn't need to get it one more time
+    
     Returns:
         Commit.Commit | None: The commit from github
     """
@@ -29,8 +31,10 @@ def fetch_commit(project: str, sha: str, g: Github) -> Commit.Commit | None:
             print(f"Unknown Project '{project}' for commit '{sha}'")
             return None
         
-        repo = g.get_repo(repo_name)        # Gets the repository from Github
-        commit = repo.get_commit(sha)       # Gets the commit from Github
+        if repo_name not in repo_cache:  
+            repo_cache[repo_name] = g.get_repo(repo_name)        # Gets the repository from Github
+        
+        commit = repo_cache[repo_name].get_commit(sha)       # Gets the commit from Github
         return commit
         
     except GithubException as e:
@@ -92,7 +96,7 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
         print(f"Error calling model {model} or writing file {file_path}: {e}")
 
 
-def process_commit(row, prompt: str, models: list[str], g: Github) -> None:
+def process_commit(row, prompt: str, models: list[str], g: Github, repo_cache = dict[str, Repository.Repository]) -> None:
     """
     Function used to work with ThreadPoolExecutor() from concurrent.future
     
@@ -111,7 +115,7 @@ def process_commit(row, prompt: str, models: list[str], g: Github) -> None:
     sha_dir.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
     
     # Create prompt for the IA
-    commit: Commit.Commit = fetch_commit(row.Project, sha, g)
+    commit: Commit.Commit = fetch_commit(row.Project, sha, g, repo_cache)
     content = create_message(commit, prompt)
     
     for message, file_name in content:

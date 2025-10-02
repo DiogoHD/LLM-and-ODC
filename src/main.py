@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 import ollama
-from github import Github
+from github import Github, Repository
 
 from functions.commit_utils import process_commit
 from functions.data_utils import excel_reader
@@ -14,9 +14,10 @@ models_list: ollama.ListResponse = ollama.list()
 models = [m.model for m in models_list.models if m is not None and m.model is not None]
 
 df = excel_reader("vulnerabilities")
+repo_cache: dict[str, Repository.Repository] = {}
 g = Github()
 
-executor_func = partial(process_commit, prompt=prompt, models=models, g=g)
+executor_func = partial(process_commit, prompt=prompt, models=models, g=g, repo_cache=repo_cache)
 
 with ThreadPoolExecutor() as executor:
     executor.map(executor_func, df.itertuples(index=False))
