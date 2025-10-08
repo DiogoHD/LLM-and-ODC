@@ -82,18 +82,17 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     
     return df_final
 
-def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
+def create_bar(df: pd.DataFrame, ax: plt.Axes) -> None:
     """Creates a Bar Graph
     
     Args:
         df (pd.DataFrame): DataFrame with the frequency of each element
-        category (str): The graph's title
         ax (plt.Axes): Graph's position in the subplot
     """
     
     # Convert the dataframe from wide to long format
     df_long = df.reset_index().melt(id_vars=df.index.name, var_name="Model", value_name="Frequency")
-    bars = sns.barplot(data=df_long, x=category, y="Frequency", hue="Model", ax=ax, palette="tab20")
+    bars = sns.barplot(data=df_long, x=df.index.name, y="Frequency", hue="Model", ax=ax, palette="tab20")
     
     # Show bar labels (the number above the bar) for each defect
     for bar in bars.patches:
@@ -102,7 +101,7 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     
     # Labels
     ax.grid(axis="y", linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
-    ax.set_title(f"{category} by IA Model")
+    ax.set_title(f"{df.index.name} by IA Model")
     ax.legend()
 
 def create_pie(df: pd.DataFrame) -> None:
