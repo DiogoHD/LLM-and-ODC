@@ -4,6 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 
 def excel_reader(name: str) -> pd.DataFrame:
@@ -90,23 +91,11 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
         ax (plt.Axes): Graph's position in the subplot
     """
     
-    # Generate colors from tab20 for each column
-    cmap = plt.cm.get_cmap("tab20")
-    n_cols = len(df.columns)
-    colors = [cmap(i / max(1, n_cols-1)) for i in range(n_cols)]  # evenly spaced
-    
-    # Bar width and x locations
-    x = np.arange(len(df))
-    w = 0.8 / n_cols
-    
-    # Draw Bars for each Defect Type
-    for i, col in enumerate(df.columns):
-        bars = ax.bar(x + i*w, df[col], width=w, label=col, color=colors[i])
-        ax.bar_label(bars, fontsize=8)
+    # Convert the dataframe from wide to long format
+    df_long = df.reset_index().melt(id_vars=df.index.name, var_name="Model", value_name="Frequency")
+    sns.barplot(data=df_long, x=category, y="Frequency", hue="Model", ax=ax, palette="tab20")
     
     # Labels
-    ax.set_xticks(x + w*(n_cols-1)/2)          # x + w*(n_cols-1)/2 is used to center the text
-    ax.set_xticklabels(df.index, rotation=0, ha="center")
     ax.set_ylabel("Frequency")
     ax.grid(axis="y", linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
     ax.set_title(category)
