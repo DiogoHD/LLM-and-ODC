@@ -101,9 +101,8 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
         ax.text(bar.get_x() + bar.get_width()/2, height + 1, int(height), ha='center', va='bottom', fontsize=6.5)
     
     # Labels
-    ax.set_ylabel("Frequency")
     ax.grid(axis="y", linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
-    ax.set_title(category)
+    ax.set_title(f"{category} by IA Model")
     ax.legend()
 
 def create_pie(df: pd.DataFrame) -> None:
