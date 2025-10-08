@@ -47,7 +47,7 @@ df_input = excel_reader("vulnerabilities")
 fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Bar Graph - Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends, removing all empty space
 for i, defect in enumerate(["Defect Type", "Defect Qualifier"]):
     crosstab = create_crosstab(df_output, df_input, defect)
-    create_bar(crosstab, defect, axes[i])
+    create_bar(crosstab, axes[i])
     create_pie(crosstab)
 
 plt.show()
