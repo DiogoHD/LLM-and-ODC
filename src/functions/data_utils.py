@@ -93,7 +93,12 @@ def create_bar(df: pd.DataFrame, category: str, ax: plt.Axes) -> None:
     
     # Convert the dataframe from wide to long format
     df_long = df.reset_index().melt(id_vars=df.index.name, var_name="Model", value_name="Frequency")
-    sns.barplot(data=df_long, x=category, y="Frequency", hue="Model", ax=ax, palette="tab20")
+    bars = sns.barplot(data=df_long, x=category, y="Frequency", hue="Model", ax=ax, palette="tab20")
+    
+    # Show bar labels (the number above the bar) for each defect
+    for bar in bars.patches:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2, height + 1, int(height), ha='center', va='bottom', fontsize=6.5)
     
     # Labels
     ax.set_ylabel("Frequency")
