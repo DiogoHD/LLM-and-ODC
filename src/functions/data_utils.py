@@ -94,10 +94,18 @@ def create_bar(df: pd.DataFrame, ax: plt.Axes) -> None:
     df_long = df.reset_index().melt(id_vars=df.index.name, var_name="Model", value_name="Frequency")
     bars = sns.barplot(data=df_long, x=df.index.name, y="Frequency", hue="Model", ax=ax, palette="tab20")
     
+    # Only label bars that correspond to real rows in df_long
+    frequencies = df_long["Frequency"].tolist()
+    i = 0
     # Show bar labels (the number above the bar) for each defect
     for bar in bars.patches:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2, height + 1, int(height), ha='center', va='bottom', fontsize=6.5)
+        # When all the values ends, stops adding bar labels, thus correcting the phantom 0s bug
+        if i >= len(frequencies):
+            break
+        
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, int(frequencies[i]),
+                ha='center', va='bottom', fontsize=6.5)
+        i += 1
     
     # Labels
     ax.grid(axis="y", linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
