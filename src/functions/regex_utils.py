@@ -30,13 +30,10 @@ def remove_think_blocks(text: str) -> str:
         # If there's at least one </think> tag, cuts until the last </think>, returning everything but the think block
         return text[end + len("</think>"):]
 
-def make_pattern(name: str) -> regex.Pattern:
+def make_pattern() -> regex.Pattern:
     """Generates a regex pattern to find a specific defect type in text, 
     allowing fuzzy matching and various separators.
     
-    Args:
-        name (str): The defect type or keyword to match in the text.
-        
     Returns:
         regex.Pattern: A compiled regular expression object that can be used 
         to search for the given defect in a string. The pattern allows:
@@ -49,7 +46,7 @@ def make_pattern(name: str) -> regex.Pattern:
     
     # Uses a raw string so Python can allow escape characters
     pattern = regex.compile(rf"""
-    (?:{name})      # Use that word without capturing it
+    (Defect Type|Defect Qualifier)  # Find one word or another, capturing it so we can later check if it has captured a type or a qualifier
     {{e<=1}}        # Fuzzy Matching - Allows at most 1 typo (only possible using the module regex (impossible with re))
     \s*[:\-–—]\s*   # Allows various separators and it can have 0 or multiple spaces before or after the separator
     (?:\d+\)?\s*)?  # If a number appears before the word that we want [2) or 3] it ignores it
@@ -74,12 +71,22 @@ def extract_defects(text: str) -> list[tuple[str | None, str | None]]:
     
     text = remove_think_blocks(text)  # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
     
-    allDefects = {}
-    for defect in ["Type", "Qualifier"]:
-        matches = regex.findall(make_pattern(defect), text)                     # Finds the defect in the given text, using a specific pattern
-        allDefects[f"Defect {defect}"] = [m.strip("'\",*()") for m in matches]      # If found, it strips the defect from unwanted characters, otherwise returns None
-    
-    result = [(a,b) for a, b in zip_longest(allDefects["Defect Type"], allDefects["Defect Qualifier"])]
+    # Finds the defect in the given text, using a specific pattern
+    # Then groups the corresponding type and the corresponding qualifier
+    result = []
+    for kind, value in regex.findall(make_pattern(), text): 
+        value = value.strip("'\",*()")      # Strips the value from unwanted characters
+        kind = kind.lower().strip()
+        if kind == "defect type":
+            if result and result[-1][0] is None:
+                result[-1][-1] = value          # Fills with the type
+            else:
+                result.append([value, None])    # Fills with the type and a temporary None for the qualifier
+        elif kind == "defect qualifier":
+            if result and result[-1][1] is None:
+                result[-1][-1] = value          # Fills with the the qualifier
+            else:
+                result.append([None, value])    # Fills with the type and a temporary None for the qualifier
+    result = [(a, b) for a, b in result]
     result = list(set(result))
-    
     return result
