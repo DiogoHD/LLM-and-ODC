@@ -1,3 +1,5 @@
+from itertools import zip_longest
+
 import regex
 
 
@@ -59,23 +61,25 @@ def make_pattern(name: str) -> regex.Pattern:
     
     return pattern
 
-def extract_defects(text: str) -> dict[str, list[str]]:
+def extract_defects(text: str) -> list[tuple[str | None, str | None]]:
     """Extracts defects of specific types from a given text.
     
     Args:
         text (str): The input string to be analyzed
-        
+    
     Returns:
-        dict[str, list[str]]: A dictionary mapping each defect type 
-        (e.g., 'Defect Type', 'Defect Qualifier') to a list of strings 
-        representing the defects found in the text. 
-        If no defects are found, the corresponding list is empty.
+        list[tuple[str | None, str | None]]: A list with tuples for each defect classification found in the file.
+        The tuple is composed of a Defect Type and a Defect Qualifier (Type, Qualifier)
     """
     
     text = remove_think_blocks(text)  # Cleans the thinking from the IA's that support it, if it doesn't end, cleans the whole text
     
-    result = {}
+    allDefects = {}
     for defect in ["Type", "Qualifier"]:
         matches = regex.findall(make_pattern(defect), text)                     # Finds the defect in the given text, using a specific pattern
-        result[f"Defect {defect}"] = [m.strip("'\",*()") for m in matches]      # If found, it strips the defect from unwanted characters, otherwise returns None
+        allDefects[f"Defect {defect}"] = [m.strip("'\",*()") for m in matches]      # If found, it strips the defect from unwanted characters, otherwise returns None
+    
+    result = [(a,b) for a, b in zip_longest(allDefects["Defect Type"], allDefects["Defect Qualifier"])]
+    result = list(set(result))
+    
     return result

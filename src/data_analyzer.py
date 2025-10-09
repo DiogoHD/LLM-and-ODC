@@ -1,4 +1,3 @@
-from itertools import zip_longest
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -19,7 +18,8 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
     
     defects = extract_defects(text)
     
-    for defect_type, defect_qualifier in zip_longest(defects["Defect Type"], defects["Defect Qualifier"]):
+    for defect in defects:
+        defect_type, defect_qualifier = defect
         data.append({
             "Sha": file_path.parts[1],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
             "File Name": file_path.parts[2],
