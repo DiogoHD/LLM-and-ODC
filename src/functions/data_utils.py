@@ -12,10 +12,10 @@ def excel_reader(name: str) -> pd.DataFrame:
     
     Args:
         name (str): The name of the excel file without extension
-        
+    
     Raises:
         RuntimeError: If it can't open the excel file
-        
+    
     Returns:
         pd.DataFrame: A pandas dataframe
     """
@@ -58,7 +58,7 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     # Divides the dataframe in two dataframes: One with the allowed defects and the other with the strange ones
     df_valid = df.loc[df.index.isin(valid_idx)]
     df_other = df.loc[~df.index.isin(valid_idx)]
-        
+    
     # Sums the rest in a single line
     if not df_other.empty:
         df_other = pd.DataFrame(df_other.sum()).T   # Sums all the lines in the rest Dataframe, creating a Series, then it converts into a Dataframe and transposes it
@@ -66,7 +66,6 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
         df_final = pd.concat([df_valid, df_other])  # Concatenates the df_valid with the df_other
     else:
         df_final = df_valid
-        
     
     df_final["Human"] = human_counts.reindex(df_final.index, fill_value=0).astype(int)   # Adds "Human" column to the Dataframe
     df_final.index.name = category  # Define index name
