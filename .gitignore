@@ -9,3 +9,6 @@ test/
 # Files
 *.csv
 prompt.txt
+
+# Virtual Environment
+.venv/
