@@ -147,3 +147,20 @@ def create_pie(df: pd.DataFrame) -> None:
     fig.suptitle(df.index.name)
     legend_handles = [plt.Line2D([0], [0], color=colors_map[label], lw=4) for label in labels]
     fig.legend(legend_handles, labels, title=df.index.name, loc="lower right")
+
+def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> pd.DataFrame:
+    result = pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_ia["Model"]))
+    
+    for commit, df_human_commit in df_human.groupby("P_COMMIT"):
+        human_defects = set(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))
+        df_ia_commit = df_ia[df_ia["Sha"] == commit]
+        
+        for model_name, df_model in df_ia_commit.groupby("Model"):
+            ia_defects = set(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))
+            
+            # Correct = Intersection between sets
+            correct = len(human_defects & ia_defects)
+            result.loc[model_name, "Correct"] += correct
+            # Incorrect = Defects caught by IA but not by humans
+            result.loc[model_name, "Incorrect"] += len(ia_defects - human_defects)
+    return result
