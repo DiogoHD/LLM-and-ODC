@@ -150,6 +150,15 @@ def create_pie(df: pd.DataFrame) -> None:
     fig.legend(legend_handles, labels, title=df.index.name, loc="lower right")
 
 def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> pd.DataFrame:
+    """Creates a DataFrame with the accuracy of every IA.
+
+    Args:
+        df_human (pd.DataFrame): A dataframe with human analysis
+        df_ia (pd.DataFrame): A dataframe with IA analysis
+
+    Returns:
+        pd.DataFrame: A dataframe with the accuracy of every IA
+    """
     result = pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_ia["Model"]))
     
     for commit, df_human_commit in df_human.groupby("P_COMMIT"):
