@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from collections import Counter
 
 
 def excel_reader(name: str) -> pd.DataFrame:
@@ -152,15 +153,16 @@ def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> pd.DataFrame:
     result = pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_ia["Model"]))
     
     for commit, df_human_commit in df_human.groupby("P_COMMIT"):
-        human_defects = set(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))
+        human_defects = Counter(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))
         df_ia_commit = df_ia[df_ia["Sha"] == commit]
         
         for model_name, df_model in df_ia_commit.groupby("Model"):
-            ia_defects = set(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))
+            ia_defects = Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))
             
-            # Correct = Intersection between sets
-            correct = len(human_defects & ia_defects)
+            # Correct = Intersection between human and IA defects
+            correct = sum((human_defects & ia_defects).values())
             result.loc[model_name, "Correct"] += correct
             # Incorrect = Defects caught by IA but not by humans
-            result.loc[model_name, "Incorrect"] += len(ia_defects - human_defects)
+            result.loc[model_name, "Incorrect"] += sum((ia_defects - human_defects).values())
+    result["Accuracy"] = (result["Correct"] / (result["Correct"] + result["Incorrect"]) * 100).round(2)
     return result
