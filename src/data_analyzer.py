@@ -3,7 +3,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from functions.data_utils import (count_matches, create_bar, create_crosstab, create_pie, excel_reader)
+from functions.data_utils import count_matches, create_crosstab, excel_reader
+from functions.graphs import create_bar, create_pie
 from functions.regex_utils import extract_defects
 
 folder = Path("output")
