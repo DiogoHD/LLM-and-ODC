@@ -10,10 +10,10 @@ def excel_reader(name: str) -> pd.DataFrame:
     
     Args:
         name (str): The name of the excel file without extension
-        
+    
     Raises:
         RuntimeError: If it can't open the excel file
-        
+    
     Returns:
         pd.DataFrame: A pandas dataframe
     """
@@ -56,7 +56,7 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     # Divides the dataframe in two dataframes: One with the allowed defects and the other with the strange ones
     df_valid = df.loc[df.index.isin(valid_idx)]
     df_other = df.loc[~df.index.isin(valid_idx)]
-        
+    
     # Sums the rest in a single line
     if not df_other.empty:
         df_other = pd.DataFrame(df_other.sum()).T   # Sums all the lines in the rest Dataframe, creating a Series, then it converts into a Dataframe and transposes it
@@ -97,15 +97,14 @@ def update_accuracy(dataframes: list[pd.DataFrame], df_human: pd.DataFrame, df_i
             ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
             df.loc[model_name, "Correct"] += ia_correct
             df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
-    
 
 def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> list[pd.DataFrame]:
     """Creates three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined.
-
+    
     Args:
         df_human (pd.DataFrame): A dataframe with human analysis
         df_ia (pd.DataFrame): A dataframe with IA analysis
-
+    
     Returns:
         list[pd.DataFrame]: Three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined
     """
@@ -120,8 +119,7 @@ def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> list[pd.DataFr
             for file_name, df_human_file in df_human_commit.groupby("Filenames"):
                 df_ia_file = df_ia_commit[df_ia_commit["File Name"] == file_name]
                 update_accuracy(dataframes, df_human_file, df_ia_file)
-
-
+    
     for name, df in zip(["Type", "Qualifier", "Combined"], dataframes):
         df["Accuracy (%)"] = (df["Correct"] / (df["Correct"] + df["Incorrect"]) * 100).round(2)
         df.Name = f"Defect {name}"
