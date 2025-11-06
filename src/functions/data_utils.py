@@ -80,6 +80,18 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     
     return df_final
 
+def update_accuracy(dataframes: list[pd.DataFrame], df_human: pd.DataFrame, df_ia: pd.DataFrame) -> None:
+    human_defects = [Counter(df_human["Defect Type"]), Counter(df_human["Defect Qualifier"]), Counter(zip(df_human["Defect Type"], df_human["Defect Qualifier"]))]
+            
+    for model_name, df_model in df_ia.groupby("Model"):
+        ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
+        
+        for idx, df in enumerate(dataframes):
+            ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
+            df.loc[model_name, "Correct"] += ia_correct
+            df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+    
+
 def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> list[pd.DataFrame]:
     """Creates three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined.
 
@@ -96,28 +108,11 @@ def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> list[pd.DataFr
         df_ia_commit = df_ia[df_ia["Sha"] == commit]
         
         if any(df_human_commit["Filenames"].isnull()) or any(df_human_commit["# Files"] != 1):
-            human_defects = [Counter(df_human_commit["Defect Type"]), Counter(df_human_commit["Defect Qualifier"]), Counter(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))]
-            
-            for model_name, df_model in df_ia_commit.groupby("Model"):
-                ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
-                
-                for idx, df in enumerate(dataframes):
-                    ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
-                    df.loc[model_name, "Correct"] += ia_correct
-                    df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+            update_accuracy(dataframes, df_human_commit, df_ia_commit)
         else:
             for file_name, df_human_file in df_human_commit.groupby("Filenames"):
-                human_defects = [Counter(df_human_file["Defect Type"]), Counter(df_human_file["Defect Qualifier"]), Counter(zip(df_human_file["Defect Type"], df_human_file["Defect Qualifier"]))]
-
                 df_ia_file = df_ia_commit[df_ia_commit["File Name"] == file_name]
-                
-                for model_name, df_model in df_ia_file.groupby("Model"):
-                    ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
-                    
-                    for idx, df in enumerate(dataframes):
-                        ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
-                        df.loc[model_name, "Correct"] += ia_correct
-                        df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+                update_accuracy(dataframes, df_human_file, df_ia_file)
 
 
     for name, df in zip(["Type", "Qualifier", "Combined"], dataframes):
