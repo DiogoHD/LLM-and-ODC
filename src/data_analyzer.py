@@ -51,6 +51,9 @@ for i, defect in enumerate(["Defect Type", "Defect Qualifier"]):
     create_bar(crosstab, axes[i])
     create_pie(crosstab)
 
-print(count_matches(df_human, df_ia))
+titles = ["Defect Type", "Defect Qualifier", "Combined Defect Type and Qualifier"]
+for title, df in zip(titles, count_matches(df_human, df_ia)):
+    print(f"\n=== {title} Accuracy ===")
+    print(df)
 
 plt.show()

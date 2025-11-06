@@ -80,29 +80,32 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     
     return df_final
 
-def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> pd.DataFrame:
-    """Creates a DataFrame with the accuracy of every IA.
+def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> list[pd.DataFrame]:
+    """Creates three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined.
 
     Args:
         df_human (pd.DataFrame): A dataframe with human analysis
         df_ia (pd.DataFrame): A dataframe with IA analysis
 
     Returns:
-        pd.DataFrame: A dataframe with the accuracy of every IA
+        list[pd.DataFrame]: Three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined
     """
-    result = pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_ia["Model"]))
+    dataframes = [pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_ia["Model"])) for _ in range(3)]
     
     for commit, df_human_commit in df_human.groupby("P_COMMIT"):
-        human_defects = Counter(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))
+        human_defects = [Counter(df_human_commit["Defect Type"]), Counter(df_human_commit["Defect Qualifier"]), Counter(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))]
+        
         df_ia_commit = df_ia[df_ia["Sha"] == commit]
         
         for model_name, df_model in df_ia_commit.groupby("Model"):
-            ia_defects = Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))
+            ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
             
-            # Correct = Intersection between human and IA defects
-            correct = sum((human_defects & ia_defects).values())
-            result.loc[model_name, "Correct"] += correct
-            # Incorrect = Defects caught by IA but not by humans
-            result.loc[model_name, "Incorrect"] += sum((ia_defects - human_defects).values())
-    result["Accuracy"] = (result["Correct"] / (result["Correct"] + result["Incorrect"]) * 100).round(2)
-    return result
+            for idx, df in enumerate(dataframes):
+                ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
+                df.loc[model_name, "Correct"] += ia_correct
+                df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+
+    for df in dataframes:
+        df["Accuracy (%)"] = (df["Correct"] / (df["Correct"] + df["Incorrect"]) * 100).round(2)
+    
+    return dataframes
