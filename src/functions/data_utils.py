@@ -81,6 +81,13 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     return df_final
 
 def update_accuracy(dataframes: list[pd.DataFrame], df_human: pd.DataFrame, df_ia: pd.DataFrame) -> None:
+    """Updates the accuracy dataframes with the number of correct and incorrect matches for each IA model.
+
+    Args:
+        dataframes (list[pd.DataFrame]): List of three dataframes to update
+        df_human (pd.DataFrame): DataFrame with human analysis
+        df_ia (pd.DataFrame): DataFrame with IA analysis
+    """
     human_defects = [Counter(df_human["Defect Type"]), Counter(df_human["Defect Qualifier"]), Counter(zip(df_human["Defect Type"], df_human["Defect Qualifier"]))]
             
     for model_name, df_model in df_ia.groupby("Model"):
