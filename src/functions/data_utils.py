@@ -93,19 +93,35 @@ def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> list[pd.DataFr
     dataframes = [pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_ia["Model"])) for _ in range(3)]
     
     for commit, df_human_commit in df_human.groupby("P_COMMIT"):
-        human_defects = [Counter(df_human_commit["Defect Type"]), Counter(df_human_commit["Defect Qualifier"]), Counter(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))]
-        
         df_ia_commit = df_ia[df_ia["Sha"] == commit]
         
-        for model_name, df_model in df_ia_commit.groupby("Model"):
-            ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
+        if any(df_human_commit["Filenames"].isnull()) or any(df_human_commit["# Files"] != 1):
+            human_defects = [Counter(df_human_commit["Defect Type"]), Counter(df_human_commit["Defect Qualifier"]), Counter(zip(df_human_commit["Defect Type"], df_human_commit["Defect Qualifier"]))]
             
-            for idx, df in enumerate(dataframes):
-                ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
-                df.loc[model_name, "Correct"] += ia_correct
-                df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+            for model_name, df_model in df_ia_commit.groupby("Model"):
+                ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
+                
+                for idx, df in enumerate(dataframes):
+                    ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
+                    df.loc[model_name, "Correct"] += ia_correct
+                    df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+        else:
+            for file_name, df_human_file in df_human_commit.groupby("Filenames"):
+                human_defects = [Counter(df_human_file["Defect Type"]), Counter(df_human_file["Defect Qualifier"]), Counter(zip(df_human_file["Defect Type"], df_human_file["Defect Qualifier"]))]
 
-    for df in dataframes:
+                df_ia_file = df_ia_commit[df_ia_commit["File Name"] == file_name]
+                
+                for model_name, df_model in df_ia_file.groupby("Model"):
+                    ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
+                    
+                    for idx, df in enumerate(dataframes):
+                        ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
+                        df.loc[model_name, "Correct"] += ia_correct
+                        df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+
+
+    for name, df in zip(["Type", "Qualifier", "Combined"], dataframes):
         df["Accuracy (%)"] = (df["Correct"] / (df["Correct"] + df["Incorrect"]) * 100).round(2)
+        df.Name = f"Defect {name}"
     
     return dataframes
