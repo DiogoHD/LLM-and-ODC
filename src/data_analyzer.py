@@ -30,7 +30,7 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
             })
 
 
-df_ia = pd.DataFrame(data)          # Create DataFrame
+df_predicted = pd.DataFrame(data)          # Create DataFrame
 
 script_dir = Path(__file__).parent      # Get the folder where this file is located (src/)
 data_dir = script_dir.parent / "data"   # Goes up one level and joins with data folder
@@ -38,20 +38,20 @@ data_dir.mkdir(parents=True, exist_ok=True)
 output_path = data_dir / "output.csv"
 
 try:
-    df_ia.to_csv(output_path, index=False, encoding="utf-8")    # Export DataFrame to CSV
+    df_predicted.to_csv(output_path, index=False, encoding="utf-8")    # Export DataFrame to CSV
 except (OSError, PermissionError, UnicodeEncodeError) as e:
     raise RuntimeError(f"Failed to write CSV to {output_path}: {e}") from e
 
-df_human = excel_reader("vulnerabilities")
+df_real = excel_reader("vulnerabilities")
 
 # Creating Bar Graphs
 fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Bar Graph - Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends, removing all empty space
 for i, defect in enumerate(["Defect Type", "Defect Qualifier"]):
-    crosstab = create_crosstab(df_ia, df_human, defect)
+    crosstab = create_crosstab(df_predicted, df_real, defect)
     create_bar(crosstab, axes[i])
     create_pie(crosstab)
 
-for df in count_matches(df_human, df_ia):
+for df in count_matches(df_real, df_predicted):
     print(f"\n=== {df.Name} Accuracy ===")
     print(df)
 

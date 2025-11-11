@@ -35,21 +35,21 @@ def excel_reader(name: str) -> pd.DataFrame:
     
     return df
 
-def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) -> pd.DataFrame:
+def create_crosstab(df_predicted: pd.DataFrame, df_real: pd.DataFrame, category: str) -> pd.DataFrame:
     """Creates a table with the frequency of each defect for each IA model and returns it.\n
     It also prints the table the Frequency Table and a Percent Table
     
     Args:
-        df_ia (pd.DataFrame): Dataframe with analysis of AI responses
-        df_human (pd.DataFrame): Dataframe with human responses
+        df_predicted (pd.DataFrame): Dataframe with analysis of AI responses
+        df_real (pd.DataFrame): Dataframe with human responses
         category (str): The category being analyzed
     
     Returns:
         pd.DataFrame: Cross tabulation with two factors
     """
     
-    df = pd.crosstab(df_ia[category], df_ia["Model"])                   # Creates a table with the frequency of each defect for each model
-    human_counts = df_human[df_human["P_COMMIT"].isin(df_ia["Sha"])]    # Only gets the defects classification from the humans that were analyzed by the IA
+    df = pd.crosstab(df_predicted[category], df_predicted["Model"])                   # Creates a table with the frequency of each defect for each model
+    human_counts = df_real[df_real["P_COMMIT"].isin(df_predicted["Sha"])]    # Only gets the defects classification from the humans that were analyzed by the IA
     human_counts = human_counts[category].value_counts()                # Counting Human Data
     
     valid_idx = human_counts.index      # Allowed defects
@@ -80,17 +80,17 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     
     return df_final
 
-def update_accuracy(dataframes: list[pd.DataFrame], df_human: pd.DataFrame, df_ia: pd.DataFrame) -> None:
+def update_accuracy(dataframes: list[pd.DataFrame], df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> None:
     """Updates the accuracy dataframes with the number of correct and incorrect matches for each IA model.
 
     Args:
         dataframes (list[pd.DataFrame]): List of three dataframes to update
-        df_human (pd.DataFrame): DataFrame with human analysis
-        df_ia (pd.DataFrame): DataFrame with IA analysis
+        df_real (pd.DataFrame): DataFrame with human analysis
+        df_predicted (pd.DataFrame): DataFrame with IA analysis
     """
-    human_defects = [Counter(df_human["Defect Type"]), Counter(df_human["Defect Qualifier"]), Counter(zip(df_human["Defect Type"], df_human["Defect Qualifier"]))]
+    human_defects = [Counter(df_real["Defect Type"]), Counter(df_real["Defect Qualifier"]), Counter(zip(df_real["Defect Type"], df_real["Defect Qualifier"]))]
             
-    for model_name, df_model in df_ia.groupby("Model"):
+    for model_name, df_model in df_predicted.groupby("Model"):
         ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
         
         for idx, df in enumerate(dataframes):
@@ -98,27 +98,27 @@ def update_accuracy(dataframes: list[pd.DataFrame], df_human: pd.DataFrame, df_i
             df.loc[model_name, "Correct"] += ia_correct
             df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
 
-def count_matches(df_human: pd.DataFrame, df_ia: pd.DataFrame) -> list[pd.DataFrame]:
+def count_matches(df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> list[pd.DataFrame]:
     """Creates three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined.
     
     Args:
-        df_human (pd.DataFrame): A dataframe with human analysis
-        df_ia (pd.DataFrame): A dataframe with IA analysis
+        df_real (pd.DataFrame): A dataframe with human analysis
+        df_predicted (pd.DataFrame): A dataframe with IA analysis
     
     Returns:
         list[pd.DataFrame]: Three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined
     """
-    dataframes = [pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_ia["Model"])) for _ in range(3)]
+    dataframes = [pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_predicted["Model"])) for _ in range(3)]
     
-    for commit, df_human_commit in df_human.groupby("P_COMMIT"):
-        df_ia_commit = df_ia[df_ia["Sha"] == commit]
+    for commit, df_real_commit in df_real.groupby("P_COMMIT"):
+        df_predicted_commit = df_predicted[df_predicted["Sha"] == commit]
         
-        if any(df_human_commit["Filenames"].isnull()) or any(df_human_commit["# Files"] != 1):
-            update_accuracy(dataframes, df_human_commit, df_ia_commit)
+        if any(df_real_commit["Filenames"].isnull()) or any(df_real_commit["# Files"] != 1):
+            update_accuracy(dataframes, df_real_commit, df_predicted_commit)
         else:
-            for file_name, df_human_file in df_human_commit.groupby("Filenames"):
-                df_ia_file = df_ia_commit[df_ia_commit["File Name"] == file_name]
-                update_accuracy(dataframes, df_human_file, df_ia_file)
+            for file_name, df_real_file in df_real_commit.groupby("Filenames"):
+                df_predicted_file = df_predicted_commit[df_predicted_commit["File Name"] == file_name]
+                update_accuracy(dataframes, df_real_file, df_predicted_file)
     
     for name, df in zip(["Type", "Qualifier", "Combined"], dataframes):
         df["Accuracy (%)"] = (df["Correct"] / (df["Correct"] + df["Incorrect"]) * 100).round(2)
