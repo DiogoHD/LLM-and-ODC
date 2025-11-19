@@ -30,7 +30,7 @@ def excel_reader(name: str) -> pd.DataFrame:
     except Exception as e:
         raise RuntimeError(f"Failed to open excel file in {file_path}: {e}") from e
     
-    desired_cols = ["V_ID", "Project", "CVE", "V_CLASSIFICATION", "P_COMMIT", "Defect Type", "Defect Qualifier", "# Files", "Filenames"]
+    desired_cols = ["V_ID", "Project", "CVE", "V_CLASSIFICATION", "P_COMMIT", "Defect Type", "Defect Qualifier", "# Files", "Filename"]
     df = df[desired_cols]
     
     return df
@@ -113,10 +113,10 @@ def count_matches(df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> list[pd.
     for commit, df_real_commit in df_real.groupby("P_COMMIT"):
         df_predicted_commit = df_predicted[df_predicted["Sha"] == commit]
         
-        if any(df_real_commit["Filenames"].isnull()) or any(df_real_commit["# Files"] != 1):
+        if any(df_real_commit["Filename"].isnull()) or any(df_real_commit["# Files"] != 1):
             update_accuracy(dataframes, df_real_commit, df_predicted_commit)
         else:
-            for file_name, df_real_file in df_real_commit.groupby("Filenames"):
+            for file_name, df_real_file in df_real_commit.groupby("Filename"):
                 df_predicted_file = df_predicted_commit[df_predicted_commit["File Name"] == file_name]
                 update_accuracy(dataframes, df_real_file, df_predicted_file)
     
