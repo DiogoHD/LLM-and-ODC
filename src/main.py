@@ -13,11 +13,11 @@ prompt = "A defect type can be one of the following categories: 1) Assignment/In
 models_list: ollama.ListResponse = ollama.list()
 models = [m.model for m in models_list.models if m is not None and m.model is not None]
 
-df = excel_reader("vulnerabilities")
+df_real = excel_reader("vulnerabilities")
 repo_cache: dict[str, Repository.Repository] = {}
 g = Github()
 
 executor_func = partial(process_commit, prompt=prompt, models=models, g=g, repo_cache=repo_cache)
 
 with ThreadPoolExecutor() as executor:
-    executor.map(executor_func, df.itertuples(index=False))
+    executor.map(executor_func, df_real.itertuples(index=False))

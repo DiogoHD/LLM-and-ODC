@@ -3,7 +3,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from functions.data_utils import create_bar, create_crosstab, create_pie, excel_reader
+from functions.data_utils import count_matches, create_crosstab, excel_reader
+from functions.graphs import create_bar, create_pie
 from functions.regex_utils import extract_defects
 
 folder = Path("output")
@@ -29,7 +30,7 @@ for file_path in folder.rglob("*.txt"):     # For every text file in the main fo
             })
 
 
-df_output = pd.DataFrame(data)          # Create DataFrame
+df_predicted = pd.DataFrame(data)          # Create DataFrame
 
 script_dir = Path(__file__).parent      # Get the folder where this file is located (src/)
 data_dir = script_dir.parent / "data"   # Goes up one level and joins with data folder
@@ -37,17 +38,21 @@ data_dir.mkdir(parents=True, exist_ok=True)
 output_path = data_dir / "output.csv"
 
 try:
-    df_output.to_csv(output_path, index=False, encoding="utf-8")    # Export DataFrame to CSV
+    df_predicted.to_csv(output_path, index=False, encoding="utf-8")    # Export DataFrame to CSV
 except (OSError, PermissionError, UnicodeEncodeError) as e:
     raise RuntimeError(f"Failed to write CSV to {output_path}: {e}") from e
 
-df_input = excel_reader("vulnerabilities")
+df_real = excel_reader("vulnerabilities")
 
 # Creating Bar Graphs
 fig, axes = plt.subplots(1, 2, figsize=(16, 8), constrained_layout=True, num="Bar Graph - Vulnerabilities", sharey=True)    # constrained_layout automatically adjusts the space between subplots, titles, labels and legends, removing all empty space
 for i, defect in enumerate(["Defect Type", "Defect Qualifier"]):
-    crosstab = create_crosstab(df_output, df_input, defect)
+    crosstab = create_crosstab(df_predicted, df_real, defect)
     create_bar(crosstab, axes[i])
     create_pie(crosstab)
+
+for df in count_matches(df_real, df_predicted):
+    print(f"\n=== {df.Name} Accuracy ===")
+    print(df)
 
 plt.show()

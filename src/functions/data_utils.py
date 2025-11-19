@@ -1,10 +1,8 @@
-import math
+from collections import Counter
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 
 def excel_reader(name: str) -> pd.DataFrame:
@@ -12,10 +10,10 @@ def excel_reader(name: str) -> pd.DataFrame:
     
     Args:
         name (str): The name of the excel file without extension
-        
+    
     Raises:
         RuntimeError: If it can't open the excel file
-        
+    
     Returns:
         pd.DataFrame: A pandas dataframe
     """
@@ -37,28 +35,28 @@ def excel_reader(name: str) -> pd.DataFrame:
     
     return df
 
-def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) -> pd.DataFrame:
+def create_crosstab(df_predicted: pd.DataFrame, df_real: pd.DataFrame, category: str) -> pd.DataFrame:
     """Creates a table with the frequency of each defect for each IA model and returns it.\n
     It also prints the table the Frequency Table and a Percent Table
     
     Args:
-        df_ia (pd.DataFrame): Dataframe with analysis of AI responses
-        df_human (pd.DataFrame): Dataframe with human responses
+        df_predicted (pd.DataFrame): Dataframe with analysis of AI responses
+        df_real (pd.DataFrame): Dataframe with human responses
         category (str): The category being analyzed
     
     Returns:
         pd.DataFrame: Cross tabulation with two factors
     """
     
-    df = pd.crosstab(df_ia[category], df_ia["Model"])                   # Creates a table with the frequency of each defect for each model
-    human_counts = df_human[df_human["P_COMMIT"].isin(df_ia["Sha"])]    # Only gets the defects classification from the humans that were analyzed by the IA
+    df = pd.crosstab(df_predicted[category], df_predicted["Model"])                   # Creates a table with the frequency of each defect for each model
+    human_counts = df_real[df_real["P_COMMIT"].isin(df_predicted["Sha"])]    # Only gets the defects classification from the humans that were analyzed by the IA
     human_counts = human_counts[category].value_counts()                # Counting Human Data
     
     valid_idx = human_counts.index      # Allowed defects
     # Divides the dataframe in two dataframes: One with the allowed defects and the other with the strange ones
     df_valid = df.loc[df.index.isin(valid_idx)]
     df_other = df.loc[~df.index.isin(valid_idx)]
-        
+    
     # Sums the rest in a single line
     if not df_other.empty:
         df_other = pd.DataFrame(df_other.sum()).T   # Sums all the lines in the rest Dataframe, creating a Series, then it converts into a Dataframe and transposes it
@@ -82,68 +80,48 @@ def create_crosstab(df_ia: pd.DataFrame, df_human: pd.DataFrame, category: str) 
     
     return df_final
 
-def create_bar(df: pd.DataFrame, ax: plt.Axes) -> None:
-    """Creates a Bar Graph
-    
-    Args:
-        df (pd.DataFrame): DataFrame with the frequency of each element
-        ax (plt.Axes): Graph's position in the subplot
-    """
-    
-    # Convert the dataframe from wide to long format
-    df_long = df.reset_index().melt(id_vars=df.index.name, var_name="Model", value_name="Frequency")
-    bars = sns.barplot(data=df_long, x=df.index.name, y="Frequency", hue="Model", ax=ax, palette="tab20")
-    
-    # Only label bars that correspond to real rows in df_long
-    frequencies = df_long["Frequency"].tolist()
-    i = 0
-    # Show bar labels (the number above the bar) for each defect
-    for bar in bars.patches:
-        # When all the values ends, stops adding bar labels, thus correcting the phantom 0s bug
-        if i >= len(frequencies):
-            break
-        
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, int(frequencies[i]),
-                ha='center', va='bottom', fontsize=6.5)
-        i += 1
-    
-    # Labels
-    ax.grid(axis="y", linestyle='--', alpha=0.4, linewidth=1)         # Adds a y-grid for better visualization
-    ax.set_title(f"{df.index.name} by IA Model")
-    ax.legend()
+def update_accuracy(dataframes: list[pd.DataFrame], df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> None:
+    """Updates the accuracy dataframes with the number of correct and incorrect matches for each IA model.
 
-def create_pie(df: pd.DataFrame) -> None:
-    """Creates multiple Pie Charts using matplotlib to show the proportion between the responses of each IA.
+    Args:
+        dataframes (list[pd.DataFrame]): List of three dataframes to update
+        df_real (pd.DataFrame): DataFrame with human analysis
+        df_predicted (pd.DataFrame): DataFrame with IA analysis
+    """
+    human_defects = [Counter(df_real["Defect Type"]), Counter(df_real["Defect Qualifier"]), Counter(zip(df_real["Defect Type"], df_real["Defect Qualifier"]))]
+            
+    for model_name, df_model in df_predicted.groupby("Model"):
+        ia_defects = [Counter(df_model["Defect Type"]), Counter(df_model["Defect Qualifier"]), Counter(zip(df_model["Defect Type"], df_model["Defect Qualifier"]))]
+        
+        for idx, df in enumerate(dataframes):
+            ia_correct = sum((ia_defects[idx] & human_defects[idx]).values())
+            df.loc[model_name, "Correct"] += ia_correct
+            df.loc[model_name, "Incorrect"] += sum((ia_defects[idx]).values()) - ia_correct
+
+def count_matches(df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> list[pd.DataFrame]:
+    """Creates three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined.
     
     Args:
-        df (pd.DataFrame): DataFrame with the frequency of each IA response
+        df_real (pd.DataFrame): A dataframe with human analysis
+        df_predicted (pd.DataFrame): A dataframe with IA analysis
+    
+    Returns:
+        list[pd.DataFrame]: Three dataframes with the accuracy of every IA model for defect type, defect qualifier and both combined
     """
+    dataframes = [pd.DataFrame(0, columns=["Correct", "Incorrect"], index=np.unique(df_predicted["Model"])) for _ in range(3)]
     
-    # Only writes percent if it is greater than zero
-    def func(pct):
-        return f'{pct:.1f}%' if pct > 0 else '' 
-    
-    n = len(df.columns)
-    n_cols = math.ceil(math.sqrt(n))     # Rounds the square root up
-    n_rows = math.ceil(n / n_cols)
-    
-    fig, axs = plt.subplots(n_rows, n_cols, figsize=(4*n_cols, 4*n_rows), num="Pie Chart - " + df.index.name, sharey=True)
-    axs: np.ndarray[plt.Axes] = axs.flatten()       # Transforms the 2D matrix in a 1D matrix
-    
-    labels = df.index.tolist()
-    cmap = plt.get_cmap("tab20")    # Palette with up to 20 different colors
-    colors_map = {label: cmap(i / max(1, len(labels)-1)) for i, label in enumerate(labels)}
-    
-    for index, model in enumerate(df.columns):
-        frequency = df.loc[:, model]
-        frequency = frequency[frequency > 0]
+    for commit, df_real_commit in df_real.groupby("P_COMMIT"):
+        df_predicted_commit = df_predicted[df_predicted["Sha"] == commit]
         
-        axs[index].pie(frequency, labels=None, autopct=func, colors=[colors_map[i] for i in frequency.index])
-        axs[index].set_title(model)
+        if any(df_real_commit["Filenames"].isnull()) or any(df_real_commit["# Files"] != 1):
+            update_accuracy(dataframes, df_real_commit, df_predicted_commit)
+        else:
+            for file_name, df_real_file in df_real_commit.groupby("Filenames"):
+                df_predicted_file = df_predicted_commit[df_predicted_commit["File Name"] == file_name]
+                update_accuracy(dataframes, df_real_file, df_predicted_file)
     
-    for j in range(n, len(axs)):
-        fig.delaxes(axs[j])
+    for name, df in zip(["Type", "Qualifier", "Combined"], dataframes):
+        df["Accuracy (%)"] = (df["Correct"] / (df["Correct"] + df["Incorrect"]) * 100).round(2)
+        df.Name = f"Defect {name}"
     
-    fig.suptitle(df.index.name)
-    legend_handles = [plt.Line2D([0], [0], color=colors_map[label], lw=4) for label in labels]
-    fig.legend(legend_handles, labels, title=df.index.name, loc="lower right")
+    return dataframes
