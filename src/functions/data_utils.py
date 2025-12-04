@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn import metrics
 
 
 def excel_reader(name: str) -> pd.DataFrame:
@@ -125,3 +126,75 @@ def count_matches(df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> list[pd.
         df.Name = f"Defect {name}"
     
     return dataframes
+
+def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, category: str) -> pd.DataFrame:
+    """Creates a confusion matrix comparing human and IA classifications for a given category.
+    
+    Args:
+        df_real (pd.DataFrame): DataFrame with human analysis
+        df_predicted (pd.DataFrame): DataFrame with IA analysis
+        category (str): The category being analyzed
+    
+    Returns:
+        pd.DataFrame: A confusion matrix DataFrame
+    """
+    possible_labels = list(set(df_real[category].dropna().unique()))
+    for ia_model in df_predicted["Model"].unique():
+        df_model = df_predicted[df_predicted["Model"] == ia_model]
+        
+        # Lists for building the "flattened" actual and predicted labels
+        actual = []
+        predicted = []
+
+        # Iterate per commit
+        for commit, df_real_commit in df_real.groupby("P_COMMIT"):
+            df_pred_commit = df_model[df_model["Sha"] == commit]
+
+            # Convert to lists
+            real_defects = df_real_commit[category].tolist()
+            pred_defects = df_pred_commit[category].tolist()
+            # Replace invalid labels in predicted
+            pred_defects = [p if p in possible_labels else "Other" for p in pred_defects]
+
+            # Matching predicted to actual
+            temp_real = real_defects.copy()
+            temp_pred = pred_defects.copy()
+            for p in pred_defects:
+                if p in temp_real:
+                    actual.append(p)
+                    predicted.append(p)
+                    temp_real.remove(p)  # remove so it's matched only once
+                    temp_pred.remove(p)  # remove so it's matched only once
+
+            # Unmatched cases
+            while temp_real or temp_pred:
+                r = temp_real.pop(0) if temp_real else "Other"
+                p = temp_pred.pop(0) if temp_pred else "Other"
+                actual.append(r)
+                predicted.append(p)
+        
+        # Replace invalid labels in predicted
+        predicted = [p if p in possible_labels else "Other" for p in predicted]
+        
+        matrix_cf = metrics.confusion_matrix(
+            actual,
+            predicted,
+            labels=possible_labels + ["Other"]
+        )
+        
+        # Metrics
+        Accuracy = round(metrics.accuracy_score(actual, predicted), 2)
+        Precision = round(metrics.precision_score(actual, predicted, average='weighted', zero_division=0), 2)
+        Sensitivity = round(metrics.recall_score(actual, predicted, average='weighted', zero_division=0), 2)
+        F1_score = round(metrics.f1_score(actual, predicted, average='weighted', zero_division=0), 2)
+        metrics_dict = {
+            "Accuracy": Accuracy,
+            "Precision": Precision,
+            "Sensitivity": Sensitivity,
+            "F1_score": F1_score
+        }
+        
+        df_cf = pd.DataFrame(matrix_cf, index=possible_labels + ["Other"], columns=possible_labels + ["Other"])
+        print(f"\nConfusion Matrix for {ia_model} - {category}:\n")
+        print(df_cf)
+        print(metrics_dict)
