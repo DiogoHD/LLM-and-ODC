@@ -154,6 +154,7 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
     possible_labels = sorted(df_real[combined].dropna().unique())
     
     all_metrics = []
+    all_cf = []
     for ia_model in df_predicted["Model"].unique():
         df_model = df_predicted[df_predicted["Model"] == ia_model]
         
@@ -166,7 +167,7 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
             df_pred_commit = df_model[df_model["Sha"] == commit]
 
             if (only_one_classification):
-                if (len(df_pred_commit) > 1) or (len(df_real_commit) > 1):
+                if (len(df_pred_commit) != 1) or (len(df_real_commit) != 1):
                     continue
             
             # Convert to lists
@@ -218,20 +219,29 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
         all_metrics.append(metrics_dict)
         
         df_cf = pd.DataFrame(matrix_cf, index=possible_labels + ["Other"], columns=possible_labels + ["Other"])
-        print(f"\nConfusion Matrix for {ia_model} - {combined}:\n")
-        print(df_cf)
-        print(metrics_dict)
+        all_cf.append((ia_model, df_cf))
     
-    # Append Metrics
+    # Create directories and save metrics and confusion matrices
     root_dir = Path(__file__).parent.parent.parent  # Get the root folder
     data_dir = root_dir / "data"                    # Joins with data directory
     metrics_dir = data_dir / "metrics"
+    cf_dir = data_dir / "confusion_matrices"
     if (only_one_classification):
         metrics_dir = metrics_dir / "unique"
+        cf_dir = cf_dir / "unique"
     else:
         metrics_dir = metrics_dir / "non_unique"
+        cf_dir = cf_dir / "non_unique"
     metrics_dir.mkdir(parents=True, exist_ok=True)
+    cf_dir.mkdir(parents=True, exist_ok=True)
     metrics_path = metrics_dir / f"{combined}.csv"
+    cf_path = cf_dir / f"{combined}_confusion_matrices.txt"
 
     all_metrics_df = pd.DataFrame(all_metrics)
     all_metrics_df.to_csv(metrics_path, index=False, encoding="utf-8")
+    
+    with cf_path.open("w", encoding="utf-8") as f:
+        for ia_model, df_cf in all_cf:
+            f.write(f"Confusion Matrix for {ia_model}\n")
+            f.write(df_cf.to_string())
+            f.write("\n\n")

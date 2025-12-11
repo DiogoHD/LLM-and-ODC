@@ -55,8 +55,8 @@ for df in count_matches(df_real, df_predicted):
     print(f"\n=== {df.Name} Accuracy ===")
     print(df)
 
-plt.show()
-
 for category in ["Defect Type", "Defect Qualifier", ["Defect Type", "Defect Qualifier"]]:
     create_confusion_matrix(df_real, df_predicted, category)
     create_confusion_matrix(df_real, df_predicted, category, only_one_classification=True)
+
+plt.show()

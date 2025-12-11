@@ -8,6 +8,8 @@ test/
 
 # Files
 *.csv
+*.xlsx
+*.txt
 prompt.txt
 
 # Virtual Environment
