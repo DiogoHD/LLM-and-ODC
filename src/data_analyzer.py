@@ -59,3 +59,4 @@ plt.show()
 
 for category in ["Defect Type", "Defect Qualifier", ["Defect Type", "Defect Qualifier"]]:
     create_confusion_matrix(df_real, df_predicted, category)
+    create_confusion_matrix(df_real, df_predicted, category, only_one_classification=True)

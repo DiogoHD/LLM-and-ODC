@@ -127,7 +127,7 @@ def count_matches(df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> list[pd.
     
     return dataframes
 
-def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, category: str | list[str]) -> pd.DataFrame:
+def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, category: str | list[str], only_one_classification: bool = False) -> pd.DataFrame:
     """Creates a confusion matrix comparing human and IA classifications for a given category.
     
     Args:
@@ -152,6 +152,8 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
     
     # Determine valid labels
     possible_labels = sorted(df_real[combined].dropna().unique())
+    
+    all_metrics = []
     for ia_model in df_predicted["Model"].unique():
         df_model = df_predicted[df_predicted["Model"] == ia_model]
         
@@ -163,6 +165,10 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
         for commit, df_real_commit in df_real.groupby("P_COMMIT"):
             df_pred_commit = df_model[df_model["Sha"] == commit]
 
+            if (only_one_classification):
+                if (len(df_pred_commit) > 1) or (len(df_real_commit) > 1):
+                    continue
+            
             # Convert to lists
             real_defects = df_real_commit[combined].tolist()
             pred_defects = df_pred_commit[combined].tolist()
@@ -201,13 +207,31 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
         recall = round(metrics.recall_score(actual, predicted, average='weighted', zero_division=0), 2)
         f1_score = round(metrics.f1_score(actual, predicted, average='weighted', zero_division=0), 2)
         metrics_dict = {
+            "Model": ia_model,
             "Accuracy": accuracy,
             "Precision": precision,
             "Recall/Sensitivity": recall,
             "F1_score": f1_score
         }
+
+        
+        all_metrics.append(metrics_dict)
         
         df_cf = pd.DataFrame(matrix_cf, index=possible_labels + ["Other"], columns=possible_labels + ["Other"])
         print(f"\nConfusion Matrix for {ia_model} - {combined}:\n")
         print(df_cf)
         print(metrics_dict)
+    
+    # Append Metrics
+    root_dir = Path(__file__).parent.parent.parent  # Get the root folder
+    data_dir = root_dir / "data"                    # Joins with data directory
+    metrics_dir = data_dir / "metrics"
+    if (only_one_classification):
+        metrics_dir = metrics_dir / "unique"
+    else:
+        metrics_dir = metrics_dir / "non_unique"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+    metrics_path = metrics_dir / f"{combined}.csv"
+
+    all_metrics_df = pd.DataFrame(all_metrics)
+    all_metrics_df.to_csv(metrics_path, index=False, encoding="utf-8")
