@@ -3,7 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from functions.data_utils import count_matches, create_crosstab, excel_reader
+from functions.data_utils import count_matches, create_crosstab, excel_reader, create_confusion_matrix
 from functions.graphs import create_bar, create_pie
 from functions.regex_utils import extract_defects
 
@@ -56,3 +56,6 @@ for df in count_matches(df_real, df_predicted):
     print(df)
 
 plt.show()
+
+for category in ["Defect Type", "Defect Qualifier"]:
+    create_confusion_matrix(df_real, df_predicted, category)
