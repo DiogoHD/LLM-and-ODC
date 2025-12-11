@@ -167,7 +167,7 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
             df_pred_commit = df_model[df_model["Sha"] == commit]
 
             if (only_one_classification):
-                if (len(df_pred_commit) != 1) or (len(df_real_commit) != 1):
+                if len(df_real_commit) != 1:
                     continue
             
             # Convert to lists
