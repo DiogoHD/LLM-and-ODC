@@ -127,18 +127,31 @@ def count_matches(df_real: pd.DataFrame, df_predicted: pd.DataFrame) -> list[pd.
     
     return dataframes
 
-def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, category: str) -> pd.DataFrame:
+def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, category: str | list[str]) -> pd.DataFrame:
     """Creates a confusion matrix comparing human and IA classifications for a given category.
     
     Args:
         df_real (pd.DataFrame): DataFrame with human analysis
         df_predicted (pd.DataFrame): DataFrame with IA analysis
-        category (str): The category being analyzed
+        category (str | list[str]): The category or categories being analyzed
     
     Returns:
         pd.DataFrame: A confusion matrix DataFrame
     """
-    possible_labels = list(set(df_real[category].dropna().unique()))
+    
+    # Combine categories into one label if needed
+    if isinstance(category, str):
+        category = [category]
+    
+    if len(category) == 1:
+        combined = category[0]
+    else:
+        combined = "_".join(category)
+        df_real[combined] = df_real[category].astype(str).agg("_".join, axis=1)
+        df_predicted[combined] = df_predicted[category].astype(str).agg("_".join, axis=1)
+    
+    # Determine valid labels
+    possible_labels = sorted(df_real[combined].dropna().unique())
     for ia_model in df_predicted["Model"].unique():
         df_model = df_predicted[df_predicted["Model"] == ia_model]
         
@@ -151,8 +164,8 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
             df_pred_commit = df_model[df_model["Sha"] == commit]
 
             # Convert to lists
-            real_defects = df_real_commit[category].tolist()
-            pred_defects = df_pred_commit[category].tolist()
+            real_defects = df_real_commit[combined].tolist()
+            pred_defects = df_pred_commit[combined].tolist()
             # Replace invalid labels in predicted
             pred_defects = [p if p in possible_labels else "Other" for p in pred_defects]
 
@@ -183,18 +196,18 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
         )
         
         # Metrics
-        Accuracy = round(metrics.accuracy_score(actual, predicted), 2)
-        Precision = round(metrics.precision_score(actual, predicted, average='weighted', zero_division=0), 2)
-        Sensitivity = round(metrics.recall_score(actual, predicted, average='weighted', zero_division=0), 2)
-        F1_score = round(metrics.f1_score(actual, predicted, average='weighted', zero_division=0), 2)
+        accuracy = round(metrics.accuracy_score(actual, predicted), 2)
+        precision = round(metrics.precision_score(actual, predicted, average='weighted', zero_division=0), 2)
+        recall = round(metrics.recall_score(actual, predicted, average='weighted', zero_division=0), 2)
+        f1_score = round(metrics.f1_score(actual, predicted, average='weighted', zero_division=0), 2)
         metrics_dict = {
-            "Accuracy": Accuracy,
-            "Precision": Precision,
-            "Sensitivity": Sensitivity,
-            "F1_score": F1_score
+            "Accuracy": accuracy,
+            "Precision": precision,
+            "Recall/Sensitivity": recall,
+            "F1_score": f1_score
         }
         
         df_cf = pd.DataFrame(matrix_cf, index=possible_labels + ["Other"], columns=possible_labels + ["Other"])
-        print(f"\nConfusion Matrix for {ia_model} - {category}:\n")
+        print(f"\nConfusion Matrix for {ia_model} - {combined}:\n")
         print(df_cf)
         print(metrics_dict)
