@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 import ollama
+from dotenv import load_dotenv
 from github import Auth, Github, Repository
 from tqdm import tqdm
 
@@ -18,6 +19,7 @@ models = [m.model for m in models_list.models if m is not None and m.model is no
 df_real = excel_reader("vulnerabilities")
 repo_cache: dict[str, Repository.Repository] = {}
 
+load_dotenv()  # Load environment variables from .env file
 token = os.getenv("GITHUB_TOKEN")
 if token is None:
     raise RuntimeError("GITHUB_TOKEN environment variable not set.")
