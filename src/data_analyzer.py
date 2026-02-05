@@ -2,15 +2,18 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from tqdm import tqdm
 
-from functions.data_utils import count_matches, create_crosstab, excel_reader, create_confusion_matrix
+from functions.data_utils import (count_matches, create_confusion_matrix,
+                                  create_crosstab, excel_reader)
 from functions.graphs import create_bar, create_pie
 from functions.regex_utils import extract_defects
 
 folder = Path("output")
+files = list(folder.rglob("*.txt"))
 data: list[dict[str, str | None]] = []
 
-for file_path in folder.rglob("*.txt"):     # For every text file in the main folder, including subfolders
+for file_path in tqdm(files, desc="Processing files", unit=" files"):     # For every text file in the main folder, including subfolders
     try:
         text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
     except (OSError, PermissionError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues

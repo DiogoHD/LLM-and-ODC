@@ -1,8 +1,10 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 import ollama
-from github import Github, Repository
+from github import Auth, Github, Repository
+from tqdm import tqdm
 
 from functions.commit_utils import process_commit
 from functions.data_utils import excel_reader
@@ -15,9 +17,14 @@ models = [m.model for m in models_list.models if m is not None and m.model is no
 
 df_real = excel_reader("vulnerabilities")
 repo_cache: dict[str, Repository.Repository] = {}
-g = Github()
+
+token = os.getenv("GITHUB_TOKEN")
+if token is None:
+    raise RuntimeError("GITHUB_TOKEN environment variable not set.")
+auth = Auth.Token(token)
+g = Github(auth=auth)
 
 executor_func = partial(process_commit, prompt=prompt, models=models, g=g, repo_cache=repo_cache)
 
 with ThreadPoolExecutor() as executor:
-    executor.map(executor_func, df_real.itertuples(index=False))
+    list(tqdm(executor.map(executor_func, df_real.itertuples(index=False)), total=len(df_real), desc="Processing commits", unit=" commits"))

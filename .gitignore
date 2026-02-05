@@ -14,3 +14,9 @@ prompt.txt
 
 # Virtual Environment
 .venv/
+
+# IDE specific files
+.vscode/
+
+# Environment variables file
+.env
