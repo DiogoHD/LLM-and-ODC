@@ -5,6 +5,8 @@ from functools import partial
 import ollama
 from dotenv import load_dotenv
 from github import Auth, Github, Repository
+from gitlab import Gitlab
+from gitlab.v4.objects import Project
 from tqdm import tqdm
 
 from functions.commit_utils import process_commit
@@ -17,16 +19,17 @@ models_list: ollama.ListResponse = ollama.list()
 models = [m.model for m in models_list.models if m is not None and m.model is not None]
 
 df_real = excel_reader("vulnerabilities")
-repo_cache: dict[str, Repository.Repository] = {}
+repo_cache: dict[str, Repository.Repository | Project] = {}
 
-load_dotenv()  # Load environment variables from .env file
+load_dotenv()
 token = os.getenv("GITHUB_TOKEN")
 if token is None:
     raise RuntimeError("GITHUB_TOKEN environment variable not set.")
 auth = Auth.Token(token)
 g = Github(auth=auth)
+gl = Gitlab()
 
-executor_func = partial(process_commit, prompt=prompt, models=models, g=g, repo_cache=repo_cache)
+executor_func = partial(process_commit, prompt=prompt, models=models, g=g, gl=gl, repo_cache=repo_cache)
 
 with ThreadPoolExecutor() as executor:
     list(tqdm(executor.map(executor_func, df_real.itertuples(index=False)), total=len(df_real), desc="Processing commits", unit=" commits"))
