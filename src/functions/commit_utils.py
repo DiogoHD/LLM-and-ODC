@@ -10,40 +10,14 @@ from dataclasses import dataclass
 
 
 # main.py 
-def fetch_github_commit(project: str, sha: str, g: Github, repo_cache: dict[str, Repository.Repository]) -> Commit.Commit | None:
-    """Given a project and a sha from a commit, fetches the commit
-    
-    Args:
-        project (str): The name of the project
-        sha (str): The sha of the commit (also called P_COMMIT)
-        g (Github): The instance for github
-        repo_cache (dict[str, Repository.Repository]): A dictionary with the repositories already loaded, so it doesn't need to get it one more time
-    
-    Returns:
-        Commit.Commit | None: The commit from github
-    """
-    
-    REPOS = {
-    "Linux": "torvalds/linux",
-    "Mozilla": "mozilla/gecko-dev",
-    "Xen": "xen-project/xen"
-    }
-    
+def fetch_github_commit(repo_url: str, sha: str, g: Github, repo_cache: dict[str, Repository.Repository]) -> Commit.Commit | None:
+    """Fetches a commit given a full GitHub repo path (e.g. 'argoproj/argo-cd') and SHA."""
     try:
-        
-        repo_name = REPOS.get(project)      # Gets the name of the repository
-        if not repo_name:
-            print(f"Unknown Project '{project}' for commit '{sha}'")
-            return None
-        
-        if repo_name not in repo_cache:  
-            repo_cache[repo_name] = g.get_repo(repo_name)        # Gets the repository from Github
-        
-        commit = repo_cache[repo_name].get_commit(sha)       # Gets the commit from Github
-        return commit
-        
+        if repo_url not in repo_cache:
+            repo_cache[repo_url] = g.get_repo(repo_url)
+        return repo_cache[repo_url].get_commit(sha)
     except GithubException as e:
-        print(f"Error accessing repository '{project}' with commit '{sha}': {e}")       # If it can't access the repo or the commit, ir prints an error
+        print(f"Error accessing '{repo_url}' with commit '{sha}': {e}")
         return None
 
 
@@ -164,19 +138,11 @@ def normalize_gitlab_files(commit: ProjectCommit) -> list[CommitFile]:
     ]
 
 def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, repo_cache: dict[str, Repository.Repository | Project]) -> None:
-    """
-    Function used to work with ThreadPoolExecutor() from concurrent.future
-    
-    Args:
-        row (pd.NamedTuple): The return value of itertuples()
-        prompt (str): The prompt for the IA
-        models (list[str]): A list of the IA models downloaded via ollama
-    """
-    
+
     root_dir = Path(__file__).parent.parent.parent  # Get the root folder
     output_dir = root_dir / "output"                # Joins with output directory
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     sha: str = row.P_COMMIT
     sha_dir: Path = output_dir / sha            # Directory's path to save IA's response
     sha_dir.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
@@ -187,9 +153,15 @@ def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, r
     # Create prompt for the IA
     if is_github:
         commit: Commit.Commit = fetch_github_commit(row.Project, sha, g, repo_cache)
+        if commit is None:
+            print(f"Commit '{sha}' not found in GitHub repository '{row.Project}'")
+            return
         files = normalize_github_files(commit)
     elif is_gitlab:
         commit: ProjectCommit = fetch_gitlab_commit(row.Project, sha, gl, repo_cache)
+        if commit is None:
+            print(f"Commit '{sha}' not found in GitLab repository '{row.Project}'")
+            return
         files = normalize_gitlab_files(commit)
     else:
         raise ValueError("Unsupported URL format")
@@ -197,8 +169,8 @@ def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, r
     content = create_message(files, prompt)
     
     for message, file_name in content:
-        safe_name = file_name.replace("/", "-").replace(".", "_")       # Replaces / and . so it doesn't create multiple directories and a file
+        safe_name = file_name.replace("/", "-").replace(".", "_")
         file_dir: Path = sha_dir / safe_name
         file_dir.mkdir(parents=True, exist_ok=True)
-        for model in models:  
+        for model in models:
             call_model(model, message, file_dir)

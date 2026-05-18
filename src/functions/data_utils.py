@@ -4,7 +4,51 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+import ast
+import re
 
+def csv_reader(name: str) -> pd.DataFrame:
+    root_dir = Path(__file__).parent.parent.parent
+    data_dir = root_dir / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    file_path = data_dir / f"{name}.csv"
+
+    try:
+        df = pd.read_csv(file_path)
+    except Exception as e:
+        raise RuntimeError(f"Failed to open CSV file in {file_path}: {e}") from e
+
+    def extract_commit_info(references_str: str) -> tuple[str | None, str | None]:
+        """Returns (repo_path, sha) from the first GitHub commit URL found."""
+        try:
+            refs = ast.literal_eval(references_str)
+            for ref in refs:
+                url = ref.get("url", "")
+                match = re.search(r"github\.com/([^/]+/[^/]+)/commit/([0-9a-f]{40})", url)
+                if match:
+                    return match.group(1), match.group(2)  # e.g. ("argoproj/argo-cd", "f5b0db...")
+        except Exception:
+            pass
+        return None, None
+
+    df[["REPO_PATH", "P_COMMIT"]] = df["references"].apply(
+        lambda r: pd.Series(extract_commit_info(r))
+    )
+
+    df = df.rename(columns={
+        "id":   "CVE",
+        "cwes": "V_CLASSIFICATION",
+    })
+
+    for col in ["V_ID", "Defect Type", "Defect Qualifier", "# Files", "Filename"]:
+        if col not in df.columns:
+            df[col] = np.nan
+
+    df = df[["V_ID", "REPO_PATH", "CVE", "V_CLASSIFICATION", "P_COMMIT",
+             "Defect Type", "Defect Qualifier", "# Files", "Filename"]]
+
+    df = df.dropna(subset=["P_COMMIT", "REPO_PATH"])
+    return df
 
 def excel_reader(name: str) -> pd.DataFrame:
     """Accesses a excel in the data folder and converts it to a pandas dataframe
