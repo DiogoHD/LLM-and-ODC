@@ -7,6 +7,17 @@ from sklearn import metrics
 import ast
 import re
 
+def safe_eval_references(references_str: str):
+    try:
+        data = ast.literal_eval(references_str)
+    except Exception:
+        return references_str  # fallback
+
+    return data
+
+def clean_url(url: str) -> str:
+    return url.strip().strip('"').strip("'")
+
 def csv_reader(name: str) -> pd.DataFrame:
     root_dir = Path(__file__).parent.parent.parent
     data_dir = root_dir / "data"
@@ -18,33 +29,39 @@ def csv_reader(name: str) -> pd.DataFrame:
     except Exception as e:
         raise RuntimeError(f"Failed to open CSV file in {file_path}: {e}") from e
 
-    def extract_commit_info(references_str: str) -> tuple[str | None, str | None]:
-        """Returns (repo_path, sha) from the first GitHub commit URL found."""
-        try:
-            refs = ast.literal_eval(references_str)
-            for ref in refs:
-                url = ref.get("url", "")
-                match = re.search(r"github\.com/([^/]+/[^/]+)/commit/([0-9a-f]{40})", url)
-                if match:
-                    return match.group(1), match.group(2)  # e.g. ("argoproj/argo-cd", "f5b0db...")
-        except Exception:
-            pass
-        return None, None
+    def extract_commit_info(references_str: str) -> list[tuple[str | None, str | None, str | None]]:
+        if not isinstance(references_str, str):
+            return []
 
-    df[["REPO_PATH", "P_COMMIT"]] = df["references"].apply(
-        lambda r: pd.Series(extract_commit_info(r))
-    )
+        results = []
+
+        github_match = re.finditer(r"github\.com/([^/]+/[^/]+)/commit/([0-9a-fA-F]+)", references_str)
+        for match in github_match:
+            results.append(("github", match.group(1), match.group(2)))
+
+        gitlab_match = re.finditer(r"gitlab\.com/([^/]+/[^/]+?)(?:/-)?/commit/([0-9a-fA-F]+)", references_str)
+        for match in gitlab_match:
+            results.append(("gitlab", match.group(1), match.group(2)))
+
+        return results
+    
+    df["commits"] = df["references"].apply(extract_commit_info)
+    df = df.explode("commits").dropna(subset=["commits"])
+    df[["PLATFORM", "REPO_PATH", "P_COMMIT"]] = pd.DataFrame(df["commits"].tolist(), index=df.index)
+    df = df.drop(columns=["commits"])
 
     df = df.rename(columns={
         "id":   "CVE",
         "cwes": "V_CLASSIFICATION",
     })
+    
+    df = df.drop_duplicates(subset=["CVE", "P_COMMIT"])
 
-    for col in ["V_ID", "Defect Type", "Defect Qualifier", "# Files", "Filename"]:
+    for col in ["V_ID", "PLATFORM", "Defect Type", "Defect Qualifier", "# Files", "Filename"]:
         if col not in df.columns:
             df[col] = np.nan
 
-    df = df[["V_ID", "REPO_PATH", "CVE", "V_CLASSIFICATION", "P_COMMIT",
+    df = df[["V_ID", "PLATFORM", "REPO_PATH", "CVE", "V_CLASSIFICATION", "P_COMMIT",
              "Defect Type", "Defect Qualifier", "# Files", "Filename"]]
 
     df = df.dropna(subset=["P_COMMIT", "REPO_PATH"])

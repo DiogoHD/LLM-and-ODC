@@ -22,31 +22,15 @@ def fetch_github_commit(repo_url: str, sha: str, g: Github, repo_cache: dict[str
 
 
 def fetch_gitlab_commit(project: str, sha: str, gl: Gitlab, repo_cache: dict[str, Project]) -> ProjectCommit | None:
-    """Given a project and a sha from a commit, fetches the commit from Gitlab (not implemented yet)
-    
-    Args:
-        project (str): The name of the project
-        sha (str): The sha of the commit (also called P_COMMIT)
-        gl (Gitlab): The instance for Gitlab
-        repo_cache (dict[str, Project]): A dictionary with the repositories already loaded, so it doesn't need to get it one more time
-    
-    Returns:
-        ProjectCommit | None: The commit from Gitlab or None if not found
-    """
-    
-    REPOS = {
-    }
+    """Given a project and a sha from a commit, fetches the commit from Gitlab """
     
     try:
-        repo_name = REPOS.get(project)      # Gets the name of the repository
-        if not repo_name:
-            print(f"Unknown Project '{project}' for commit '{sha}'")
-            return None
-        
-        if repo_name not in repo_cache:  
-            repo_cache[repo_name] = gl.projects.get(repo_name)        # Gets the repository from Gitlab
-        
-        commit = repo_cache[repo_name].commits.get(sha)       # Gets the commit from Gitlab
+        repo_name = project
+
+        if repo_name not in repo_cache:
+            repo_cache[repo_name] = gl.projects.get(repo_name)
+
+        commit = repo_cache[repo_name].commits.get(sha)
         return commit
     except GitlabGetError as e:
         print(f"Error accessing repository '{project}' with commit '{sha}': {e}")       # If it can't access the repo or the commit, ir prints an error
@@ -147,20 +131,20 @@ def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, r
     sha_dir: Path = output_dir / sha            # Directory's path to save IA's response
     sha_dir.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
     
-    is_github = row.URL.startswith("https://github.com")
-    is_gitlab = row.URL.startswith("https://gitlab.com")
+    is_github = row.PLATFORM == "github"
+    is_gitlab = row.PLATFORM == "gitlab"
     
     # Create prompt for the IA
     if is_github:
-        commit: Commit.Commit = fetch_github_commit(row.Project, sha, g, repo_cache)
+        commit: Commit.Commit = fetch_github_commit(row.REPO_PATH, sha, g, repo_cache)
         if commit is None:
-            print(f"Commit '{sha}' not found in GitHub repository '{row.Project}'")
+            print(f"Commit '{sha}' not found in GitHub repository '{row.REPO_PATH}'")
             return
         files = normalize_github_files(commit)
     elif is_gitlab:
-        commit: ProjectCommit = fetch_gitlab_commit(row.Project, sha, gl, repo_cache)
+        commit: ProjectCommit = fetch_gitlab_commit(row.REPO_PATH, sha, gl, repo_cache)
         if commit is None:
-            print(f"Commit '{sha}' not found in GitLab repository '{row.Project}'")
+            print(f"Commit '{sha}' not found in GitLab repository '{row.REPO_PATH}'")
             return
         files = normalize_gitlab_files(commit)
     else:
