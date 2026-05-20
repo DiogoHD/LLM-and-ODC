@@ -35,5 +35,5 @@ gl = Gitlab()
 
 executor_func = partial(process_commit, prompt=prompt, models=models, g=g, gl=gl, repo_cache=repo_cache)
 
-with ThreadPoolExecutor(max_workers=1) as executor:
+with ThreadPoolExecutor(max_workers=2) as executor:
     list(tqdm(executor.map(executor_func, df_real.itertuples(index=False)), total=len(df_real), desc="Processing commits", unit=" commits"))
