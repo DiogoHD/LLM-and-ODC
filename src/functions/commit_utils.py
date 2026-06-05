@@ -1,4 +1,6 @@
+import csv
 from pathlib import Path
+import time
 
 import ollama
 from github import Commit, Github, GithubException, Repository
@@ -80,20 +82,36 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
     
     model_name: str = model.partition(":")[0]       # Take model name before ':' if present
     file_path: Path = folder / f"{model_name}.txt"  # Creates the path to the text folder
+    metrics_path: Path = folder / f"metrics.txt"  # Creates the path to the metrics text folder
     
     if file_path.exists():
         return
     
     try:
+        start = time.perf_counter()
         response: ollama.ChatResponse = ollama.chat(
             model = model,                                      # Defines which ollama's model is going to be used
             messages = [{"role": "user", "content": prompt}],   # Defines who's using the model and what's going to be its content
             stream = False,                                      # Defines if the response is going to be streamed or not (False returns the full response only when it's finished, True returns the response as it's generated)
             options = {"temperature": 0.2}  # Defines the temperature of the model, which controls how deterministic the output is (0.0 is the most deterministic)
         )
-        
+        elapsed = time.perf_counter() - start
         file_path.write_text(response.message.content, encoding="utf-8")
         
+        write_header = not metrics_path.exists()
+        with open(metrics_path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            if write_header:
+                writer.writerow(["Model", "Elapsed Time (seconds)", "Prompt Tokens", "Response Tokens", "Total Tokens"])
+            
+            writer.writerow([
+                model, 
+                round(elapsed, 3),
+                response.prompt_eval_count, 
+                response.eval_count, 
+                response.prompt_eval_count + response.eval_count
+            ])
+            
     except Exception as e:
         print(f"Error calling model {model} or writing file {file_path}: {e}")
 
