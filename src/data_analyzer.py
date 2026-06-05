@@ -9,7 +9,7 @@ from functions.data_utils import (count_matches, create_confusion_matrix,
 from functions.graphs import create_bar, create_pie
 from functions.regex_utils import extract_defects
 
-folder = Path("output")
+folder = Path("trustdev-output")
 files = list(folder.rglob("*.txt"))
 data: list[dict[str, str | None]] = []
 

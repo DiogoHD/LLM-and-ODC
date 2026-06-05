@@ -88,7 +88,9 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
         response: ollama.ChatResponse = ollama.chat(
             model = model,                                      # Defines which ollama's model is going to be used
             messages = [{"role": "user", "content": prompt}],   # Defines who's using the model and what's going to be its content
-            )
+            stream = False,                                      # Defines if the response is going to be streamed or not (False returns the full response only when it's finished, True returns the response as it's generated)
+            options = {"temperature": 0.2}  # Defines the temperature of the model, which controls how deterministic the output is (0.0 is the most deterministic)
+        )
         
         file_path.write_text(response.message.content, encoding="utf-8")
         
@@ -124,7 +126,7 @@ def normalize_gitlab_files(commit: ProjectCommit) -> list[CommitFile]:
 def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, repo_cache: dict[str, Repository.Repository | Project]) -> None:
 
     root_dir = Path(__file__).parent.parent.parent  # Get the root folder
-    output_dir = root_dir / "output"                # Joins with output directory
+    output_dir = root_dir / "trustdev-output"                # Joins with output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
     sha: str = row.P_COMMIT
