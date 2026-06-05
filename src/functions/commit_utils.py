@@ -1,14 +1,16 @@
 import csv
+import os
 from pathlib import Path
 import time
 
-import ollama
 from github import Commit, Github, GithubException, Repository
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectCommit
 
 from dataclasses import dataclass
+
+import requests
 
 
 # main.py 
@@ -67,7 +69,6 @@ def create_message(files: list[CommitFile], instruction: str) -> list[tuple[str,
     
     return prompts
 
-
 def call_model(model: str, prompt: str, folder: Path) -> None:
     """Calls IA model via ollama, runs the specified prompt and stores the response in a text file
     
@@ -75,28 +76,35 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
         model (str): The name of the IA model that will be run
         prompt (str): The message that will be given to the IA
         folder (Path): The folder where the text file will be stored in
-        
-    Raises:
-        RuntimeError: If the writing of the IA response in a text file doesn't work
     """
     
     model_name: str = model.partition(":")[0]       # Take model name before ':' if present
     file_path: Path = folder / f"{model_name}.txt"  # Creates the path to the text folder
-    metrics_path: Path = folder / f"metrics.txt"  # Creates the path to the metrics text folder
+    metrics_path: Path = folder / f"metrics.csv"  # Creates the path to the metrics text folder
     
     if file_path.exists():
         return
     
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+        "options": {"temperature": 0.2}
+    }
+    
     try:
+        # Calls the model and measures the time taken for the response
         start = time.perf_counter()
-        response: ollama.ChatResponse = ollama.chat(
-            model = model,                                      # Defines which ollama's model is going to be used
-            messages = [{"role": "user", "content": prompt}],   # Defines who's using the model and what's going to be its content
-            stream = False,                                      # Defines if the response is going to be streamed or not (False returns the full response only when it's finished, True returns the response as it's generated)
-            options = {"temperature": 0.2}  # Defines the temperature of the model, which controls how deterministic the output is (0.0 is the most deterministic)
-        )
+        response = requests.post(os.getenv("CHAT_ENDPOINT"), json=payload)
+        response.raise_for_status()  # Raises an HTTPError if the response was an error
         elapsed = time.perf_counter() - start
-        file_path.write_text(response.message.content, encoding="utf-8")
+        
+        data = response.json()
+        content = data["message"]["content"]
+        prompt_eval_count = data.get("prompt_eval_count", 0)
+        response_eval_count = data.get("eval_count", 0)
+        
+        file_path.write_text(content, encoding="utf-8")
         
         write_header = not metrics_path.exists()
         with open(metrics_path, "a", encoding="utf-8", newline="") as f:
@@ -107,9 +115,9 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
             writer.writerow([
                 model, 
                 round(elapsed, 3),
-                response.prompt_eval_count, 
-                response.eval_count, 
-                response.prompt_eval_count + response.eval_count
+                prompt_eval_count, 
+                response_eval_count, 
+                prompt_eval_count + response_eval_count
             ])
             
     except Exception as e:

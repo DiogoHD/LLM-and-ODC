@@ -308,37 +308,3 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
             f.write(f"Confusion Matrix for {ia_model}\n")
             f.write(df_cf.to_string())
             f.write("\n\n")
-
-
-def save_models_info_csv(models: list[str], output_path: str = "models_info.csv") -> None:
-    """Fetches model info via ollama.show() and saves to a single CSV."""
-    
-    rows = []
-    for model in models:
-        try:
-            info = ollama.show(model)
-            
-            # Parse temperature and top_p from parameters string
-            params = info.parameters or ""
-            temperature = re.search(r"temperature\s+([\d.]+)", params)
-            top_p = re.search(r"top_p\s+([\d.]+)", params)
-            
-            rows.append({
-                "model": model,
-                "temperature": temperature.group(1) if temperature else "N/A",
-                "top_p": top_p.group(1) if top_p else "N/A",
-                "parameter_size": info.details.parameter_size,
-                "quantization": info.details.quantization_level,
-            })
-        except Exception as e:
-            print(f"Error fetching info for model '{model}': {e}")
-
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["model", "temperature", "top_p", "parameter_size", "quantization"])
-        writer.writeheader()
-        writer.writerows(rows)
-
-    print(f"Saved model info to '{path}'")
