@@ -159,8 +159,11 @@ def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, r
     output_dir = root_dir / "trustdev-output"                # Joins with output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    repo_dir = output_dir / row.REPO_PATH.replace("/", "-")   # Creates a directory for the repository, replacing '/' with '-' to avoid issues in folder names
+    repo_dir.mkdir(parents=True, exist_ok=True)
+
     sha: str = row.P_COMMIT
-    sha_dir: Path = output_dir / sha            # Directory's path to save IA's response
+    sha_dir: Path = repo_dir / sha            # Directory's path to save IA's response
     sha_dir.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
     
     is_github = row.PLATFORM == "github"
