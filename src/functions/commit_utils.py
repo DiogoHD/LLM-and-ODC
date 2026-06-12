@@ -80,7 +80,7 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
     
     model_name: str = model.partition(":")[0]       # Take model name before ':' if present
     file_path: Path = folder / f"{model_name}.txt"  # Creates the path to the text folder
-    metrics_path: Path = folder / f"metrics.csv"  # Creates the path to the metrics text folder
+    metrics_path: Path = folder / "metrics.csv"  # Creates the path to the metrics text folder
     
     if file_path.exists():
         return
@@ -95,7 +95,11 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
     try:
         # Calls the model and measures the time taken for the response
         start = time.perf_counter()
-        response = requests.post(os.getenv("CHAT_ENDPOINT"), json=payload)
+        response = requests.post(
+            os.getenv("CHAT_ENDPOINT"), 
+            json=payload,
+            auth=requests.auth.HTTPBasicAuth(os.getenv("CHAT_API_NAME"), os.getenv("CHAT_API_PASSWORD")),
+        )
         response.raise_for_status()  # Raises an HTTPError if the response was an error
         elapsed = time.perf_counter() - start
         

@@ -18,7 +18,7 @@ models = [
     "qwen3:1.7b",
     "deepseek-coder-v2:latest",
     "qwen2.5-coder:14b",
-    "gpt-oss:120b",
+    "gpt-oss:20b",
     "llama3.1:70b",
     "gemma3:27b",
 ]
