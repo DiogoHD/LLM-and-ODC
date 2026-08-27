@@ -23,6 +23,8 @@ models = [
     "gemma3:27b",
 ]
 
+NUM_RUNS = 5
+
 df_real = csv_reader("cves_merged")
 repo_cache: dict[str, Repository.Repository | Project] = {}
 
@@ -36,5 +38,26 @@ gl = Gitlab()
 
 executor_func = partial(process_commit, prompt=prompt, models=models, g=g, gl=gl, repo_cache=repo_cache)
 
-with ThreadPoolExecutor(max_workers=5) as executor:
-    list(tqdm(executor.map(executor_func, df_real.itertuples(index=False)), total=len(df_real), desc="Processing commits", unit=" commits"))
+for run_idx in range(1, NUM_RUNS + 1):
+    run_id = f"run_{run_idx}"
+    print(f"\n--- Starting {run_id} ({run_idx}/{NUM_RUNS}) ---")
+
+    executor_func = partial(
+        process_commit, 
+        prompt=prompt, 
+        models=models, 
+        g=g, 
+        gl=gl, 
+        repo_cache=repo_cache,
+        run_id=run_id
+    )
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        list(
+            tqdm(
+                executor.map(executor_func, df_real.itertuples(index=False)), 
+                total=len(df_real), 
+                desc=f"Processing commits ({run_id})", 
+                unit=" commits"
+            )
+        )

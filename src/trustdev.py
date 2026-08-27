@@ -33,36 +33,46 @@ def bar_graph(data: pd.DataFrame, title: str) -> None:
 
 folder = Path("trustdev-output")
 
-data: pd.DataFrame = pd.DataFrame(columns=["Sha", "File Name", "Model", "Defect Type", "Defect Qualifier"])
+rows = []
 
-for project_folder in folder.iterdir():    # For every project folder in the main folder
-    files = list(project_folder.rglob("*.txt"))
+for run_folder in folder.iterdir():
+    if not run_folder.is_dir():
+        continue
 
-    for file_path in files:     # For every text file in the main folder, including subfolders
-        try:
-            text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
-        except (OSError, PermissionError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
-            print(f"Error reading {file_path}: {e}")
+    for project_folder in run_folder.iterdir():    # For every project folder in the main folder
+        if not project_folder.is_dir():
             continue
-        
-        defects = extract_defects(text)
-        
-        for defect in defects:
-            normalized_type = DEFECT_TYPE_MAP.get(
-                defect[0].lower() if defect[0] else "", "Unknown"
-            )
-            normalized_qualifier = DEFECT_QUALIFIER_MAP.get(
-                defect[1].lower() if defect[1] else "", "Unknown"
-            )
 
-            data = pd.concat([data, pd.DataFrame({
-                "Project": [file_path.parts[1]],
-                "Sha": [file_path.parts[2]],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
-                "File Name": [file_path.parts[3]],
-                "Model": [file_path.stem],            # Returns the stem (file name without extension)
-                "Defect Type": [normalized_type],
-                "Defect Qualifier": [normalized_qualifier]
-            })], ignore_index=True)
+        files = list(project_folder.rglob("*.txt"))
+
+        for file_path in files:     # For every text file in the main folder, including subfolders
+            try:
+                text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
+            except (OSError, PermissionError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
+                print(f"Error reading {file_path}: {e}")
+                continue
+            
+            defects = extract_defects(text)
+            
+            for defect in defects:
+                normalized_type = DEFECT_TYPE_MAP.get(
+                    defect[0].lower() if defect[0] else "", "Unknown"
+                )
+                normalized_qualifier = DEFECT_QUALIFIER_MAP.get(
+                    defect[1].lower() if defect[1] else "", "Unknown"
+                )
+
+                rows.append({
+                    "Run": run_folder.name,
+                    "Project": file_path.parts[-4],
+                    "Sha": file_path.parts[-3],
+                    "File Name": file_path.parts[-2],
+                    "Model": file_path.stem,
+                    "Defect Type": normalized_type,
+                    "Defect Qualifier": normalized_qualifier
+                })
+
+data = pd.DataFrame(rows)
 
 # Counts the number of files processed by each model
 unique_file_models = data[["File Name", "Model"]].drop_duplicates()

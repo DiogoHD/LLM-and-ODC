@@ -153,10 +153,10 @@ def normalize_gitlab_files(commit: ProjectCommit) -> list[CommitFile]:
         for f in commit.diff()
     ]
 
-def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, repo_cache: dict[str, Repository.Repository | Project]) -> None:
+def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, repo_cache: dict[str, Repository.Repository | Project], run_id: str) -> None:
 
     root_dir = Path(__file__).parent.parent.parent  # Get the root folder
-    output_dir = root_dir / "trustdev-output"                # Joins with output directory
+    output_dir = root_dir / "trustdev-output" / run_id  # Joins with output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
     repo_dir = output_dir / row.REPO_PATH.replace("/", "-")   # Creates a directory for the repository, replacing '/' with '-' to avoid issues in folder names
