@@ -4,8 +4,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
 
-from functions.data_utils import (count_matches, create_confusion_matrix,
-                                  create_crosstab, excel_reader)
+from functions.data_utils import (
+    count_matches,
+    create_confusion_matrix,
+    create_crosstab,
+    excel_reader,
+)
 from functions.graphs import create_bar, create_pie
 from functions.regex_utils import extract_defects
 
@@ -13,24 +17,27 @@ folder = Path("trustdev-output")
 files = list(folder.rglob("*.txt"))
 data: list[dict[str, str | None]] = []
 
-for file_path in tqdm(files, desc="Processing files", unit=" files"):     # For every text file in the main folder, including subfolders
-    try:
-        text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
-    except (OSError, PermissionError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
-        print(f"Error reading {file_path}: {e}")
-        continue
-    
-    defects = extract_defects(text)
-    
-    for defect in defects:
-        defect_type, defect_qualifier = defect
-        data.append({
-            "Sha": file_path.parts[1],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
-            "File Name": file_path.parts[2],
-            "Model": file_path.stem,            # Returns the stem (file name without extension)
-            "Defect Type": defect_type, 
-            "Defect Qualifier": defect_qualifier
-            })
+
+for project_folder in folder.iterdir():    # For every project folder in the main folder
+    files = list(project_folder.rglob("*.txt"))
+    for file_path in tqdm(files, desc="Processing files", unit=" files"):     # For every text file in the main folder, including subfolders
+        try:
+            text = file_path.read_text(encoding="utf-8")    # pathlib method that reads the file and returns a string
+        except (OSError, PermissionError, UnicodeDecodeError) as e:      # If there's an error with the path or decoding, it continues
+            print(f"Error reading {file_path}: {e}")
+            continue
+        
+        defects = extract_defects(text)
+        
+        for defect in defects:
+            defect_type, defect_qualifier = defect
+            data.append({
+                "Sha": file_path.parts[1],          # file_path.parts = ('responses', 'sha', 'file_name', 'model.txt')
+                "File Name": file_path.parts[2],
+                "Model": file_path.stem,            # Returns the stem (file name without extension)
+                "Defect Type": defect_type, 
+                "Defect Qualifier": defect_qualifier
+                })
 
 
 df_predicted = pd.DataFrame(data)          # Create DataFrame

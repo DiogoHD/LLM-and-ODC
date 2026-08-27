@@ -1,13 +1,12 @@
+import ast
+import re
 from collections import Counter
-import csv
 from pathlib import Path
 
 import numpy as np
-import ollama
 import pandas as pd
 from sklearn import metrics
-import ast
-import re
+
 
 def safe_eval_references(references_str: str):
     try:
