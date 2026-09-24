@@ -1,21 +1,33 @@
 # 🤖 LLM-and-ODC
-Avaliação de grandes modelos de linguagem (LLMs) para classificar correções de vulnerabilidade de software usando classificação ortogonal de defeitos (ODC)
+Evaluation of Large Language Models (LLMs) to classify software vulnerability fixes using Orthogonal Defect Classification (ODC).
 
-## 📚 Bibliotecas necessárias de Python
-Na bash, faz:
-  `pip install -r requirements.txt`
+## 📚 Required Python Libraries
+It is highly recommended to use a virtual environment to manage dependencies.
 
-Este comando instalará todas as bibliotecas necessárias nas respetivas versões.
+**1. Create the virtual environment:**
+In your terminal, run:
+`python -m venv .venv`
 
-## 🤖 Requisitos para usar modelos LLM
-Este projeto utiliza [Ollama](https://ollama.com) para correr modelos de linguagem localmente.
+**2. Activate the virtual environment:**
+*   On **Windows**:
+    `.venv\Scripts\activate`
+*   On **macOS/Linux**:
+    `source .venv/bin/activate`
 
-### 🛠️ Instalação do Ollama
-1. Vai a [https://ollama.com/download](https://ollama.com/download) e instala o Ollama para o teu sistema operativo.
-2. Para funcionar, a aplicação ollama tem de estar aberta.
-3. Instala os modelos das LLM ao teu gosto utilizando o comando: `ollama pull "modelo"`
+**3. Install dependencies:**
+Once the environment is active, run:
+`pip install -r requirements.txt`
 
-   Ex: `ollama pull gemma3`
+This command will install all necessary libraries in their respective versions.
 
-## ▶️ Execução
-Na bash, faz: `python main.py`
+## ⚙️ Environment Configuration (.env)
+This project connects to a remote API endpoint to access the language models, meaning no local LLM installation is required. 
+
+Create a `.env` file in the root directory of your project to configure the connection and your GitHub token. Here is an example:
+
+```env
+GITHUB_TOKEN=github_pat_41552dfhag351
+CHAT_ENDPOINT=http://10.20.11.151:80/api/chat
+CHAT_API_NAME=johndoe
+CHAT_API_PASSWORD=password
+```
