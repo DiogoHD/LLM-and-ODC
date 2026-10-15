@@ -89,7 +89,12 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "stream": False,
-        "options": {"temperature": 0.2}
+        "options": {
+            "temperature": 0.2,
+            "top_p": 0.9,
+            "top_k": 40,
+            "num_ctx": 4096,
+            }
     }
     
     try:

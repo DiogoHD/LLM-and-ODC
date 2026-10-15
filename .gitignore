@@ -12,6 +12,7 @@ test/
 *.xlsx
 *.txt
 prompt.txt
+*.png
 
 # Virtual Environment
 .venv/
