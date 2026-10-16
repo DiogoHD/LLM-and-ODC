@@ -64,6 +64,9 @@ for run_folder in RUNS_FOLDER.iterdir():
                 normalized_qualifier = DEFECT_QUALIFIER_MAP.get(
                     defect[1].lower() if defect[1] else "", "Unknown"
                 )
+                
+                if normalized_type == "Unknown" and normalized_qualifier == "Unknown":
+                    continue  # Skip if both type and qualifier are unknown
 
                 rows.append({
                     "Run": run_folder.name,
@@ -79,8 +82,6 @@ data = pd.DataFrame(rows)
 
 if not OUTPUT_FOLDER.exists():
     OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
-
-
 with open(f"{OUTPUT_FOLDER}/defects_data.csv", "w", encoding="utf-8", newline="") as f:
     data.to_csv(f, index=False)
 
@@ -104,16 +105,24 @@ for model in data["Model"].unique():
     with open(f"{OUTPUT_FOLDER}/defect_crosstab/{model}.csv", "w", encoding="utf-8", newline="") as f:
         table.to_csv(f)
 
-# Creates a comparison table for each file, showing the defects identified by each model
 data["Defect"] = data["Defect Type"] + " - " + data["Defect Qualifier"]
-grouped = data.groupby(["Project", "Sha", "File Name", "Model"])["Defect"].agg(lambda x: sorted(set(x))).reset_index()
+group_cols = ["Project", "Sha", "File Name", "Model"]
+index_cols = ["Project", "Sha", "File Name"]
+
+# Comparison table with all defects identified by each model for each file
+grouped = data.groupby(["Project", "Sha", "File Name", "Model"])["Defect"].agg(lambda x: sorted(x)).reset_index()
 comparison_df = grouped.pivot(
     index=["Project", "Sha", "File Name"], 
     columns="Model",
     values="Defect"
 ).reset_index()
 
-with open(f"{OUTPUT_FOLDER}/defect_comparison.csv", "w", encoding="utf-8", newline="") as f:
+with open(f"{OUTPUT_FOLDER}/total_defects_comparison.csv", "w", encoding="utf-8", newline="") as f:
     comparison_df.to_csv(f, index=False)
 
-plt.show()
+# Comparison table with the mode of defects identified by each model for each file
+grouped_mode = data.groupby(group_cols)["Defect"].agg(lambda x: x.mode().iloc[0]).reset_index()
+mode_df = grouped_mode.pivot(index=index_cols, columns="Model", values="Defect").reset_index()
+
+with open(f"{OUTPUT_FOLDER}/mode_defects_comparison.csv", "w", encoding="utf-8", newline="") as f:
+    mode_df.to_csv(f, index=False)
