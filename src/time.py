@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+OUTPUT_FOLDER = Path("trustdev-output")
 
 def load_metrics_data(output_folder: str) -> pd.DataFrame:
     """Runs through all subfolders of the given base folder, finds all CSV files named 'metrics.csv', and concatenates them into a single DataFrame."""
@@ -15,7 +16,7 @@ def load_metrics_data(output_folder: str) -> pd.DataFrame:
         try:
             df = pd.read_csv(ficheiro_csv)
             list_dataframes.append(df)
-        except Exception as e:
+        except (OSError, pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeError) as e:
             print(f"⚠️ Erro ao ler {ficheiro_csv}: {e}")
             
     if not list_dataframes:
@@ -25,6 +26,13 @@ def load_metrics_data(output_folder: str) -> pd.DataFrame:
     return pd.concat(list_dataframes, ignore_index=True)
 
 def generate_charts(output_folder: str) -> None:
+    """Generates various graphs based on the metrics data and saves them to the specified folder."""
+    
+    graphs_folder = output_folder / "images"
+    if not Path(graphs_folder).exists():
+        Path(graphs_folder).mkdir(parents=True, exist_ok=True)
+        print(f"✅ Created folder '{graphs_folder}' for saving graphs.")
+    
     print("Loading Data...")
     df = load_metrics_data(output_folder)
     
@@ -47,8 +55,9 @@ def generate_charts(output_folder: str) -> None:
     plt.yscale("log")
     plt.tight_layout()
     
-    plt.savefig("graph_times_boxplot.png", dpi=300)
-    print("✅ Boxplot graph saved as 'graph_times_boxplot.png'")
+    path_1 = Path(graphs_folder) / "graph_times_boxplot.png"
+    plt.savefig(path_1, dpi=300)
+    print(f"✅ Boxplot graph saved to '{path_1}'")
     
     # ---------------------------------------------------------
     # Graph 2: Bar Chart (Average Execution Time with Error Bars)
@@ -63,8 +72,9 @@ def generate_charts(output_folder: str) -> None:
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     
-    plt.savefig("graph_times_barchart.png", dpi=300)
-    print("✅ Bar chart graph saved as 'graph_times_barchart.png'")
+    path_2 = Path(graphs_folder) / "graph_times_barchart.png"
+    plt.savefig(path_2, dpi=300)
+    print(f"✅ Bar chart graph saved to '{path_2}'")
     
     #---------------------------------------------------------
     # Graph 3: Scatter Plot (Elapsed Time vs. Total Tokens)
@@ -78,8 +88,9 @@ def generate_charts(output_folder: str) -> None:
     plt.ylabel("Elapsed Time (seconds)", fontsize=12)
     plt.tight_layout()
     
-    plt.savefig("graph_times_scatter.png", dpi=300)
-    print("✅ Scatter plot graph saved as 'graph_times_scatter.png'")
+    path_3 = Path(graphs_folder) / "graph_times_scatter.png"
+    plt.savefig(path_3, dpi=300)
+    print(f"✅ Scatter plot graph saved to '{path_3}'")
 
     # ---------------------------------------------------------
     # Graph 4: Throughput (Tokens per Second)
@@ -94,8 +105,9 @@ def generate_charts(output_folder: str) -> None:
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     
-    plt.savefig("graph_throughput_barchart.png", dpi=300)
-    print("✅ Throughput bar chart graph saved as 'graph_throughput_barchart.png'")
+    path_4 = Path(graphs_folder) / "graph_throughput_barchart.png"
+    plt.savefig(path_4, dpi=300)
+    print(f"✅ Throughput bar chart graph saved to '{path_4}'")
     
     # ---------------------------------------------------------
     # Graph 5: CDF (Cumulative Distribution Function) of Execution Times
@@ -109,10 +121,9 @@ def generate_charts(output_folder: str) -> None:
     plt.xscale("log")
     plt.tight_layout()
     
-    plt.savefig("graph_times_cdf.png", dpi=300)
-    print("✅ CDF graph saved as 'graph_times_cdf.png'")
-    
-    plt.show()
+    path_5 = Path(graphs_folder) / "graph_times_cdf.png"
+    plt.savefig(path_5, dpi=300)
+    print(f"✅ CDF graph saved to '{path_5}'")
 
 def generate_summary_statistics(output_folder: str) -> pd.DataFrame:
     """Generates summary statistics (min, max, mean, median, std) for the metrics data and saves it to a CSV file."""
@@ -138,13 +149,8 @@ def generate_summary_statistics(output_folder: str) -> pd.DataFrame:
 
     print(f"✅ Summary statistics saved to '{summary_csv_path}'\n")
 
-    # Imprime no terminal de forma legível
-    pd.set_option("display.max_columns", None)
-    pd.set_option("display.width", 1000)
-    print("--- SUMMARY STATISTICS ---")
-    print(stats_df)
-
     return stats_df
 
 if __name__ == "__main__":
-    generate_summary_statistics("trustdev-output")
+    generate_charts(OUTPUT_FOLDER)
+    generate_summary_statistics(OUTPUT_FOLDER)

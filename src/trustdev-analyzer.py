@@ -23,6 +23,11 @@ DEFECT_QUALIFIER_MAP = {
     "extraneous": "Extraneous",
 }
 
+ROOT_DIR = Path(__file__).resolve().parents[1]  # Get the root folder
+MAIN_FOLDER = ROOT_DIR / "trustdev-output"
+RUNS_FOLDER = MAIN_FOLDER / "runs"
+OUTPUT_FOLDER = MAIN_FOLDER / "output"
+
 def bar_graph(data: pd.DataFrame, title: str) -> None:
     plt.figure(figsize=(10, 6))
     bars = plt.bar(data.index, data.values)
@@ -31,11 +36,9 @@ def bar_graph(data: pd.DataFrame, title: str) -> None:
     plt.ylabel("Count")
     plt.title(title)
 
-folder = Path("trustdev-output")
-
 rows = []
 
-for run_folder in folder.iterdir():
+for run_folder in RUNS_FOLDER.iterdir():
     if not run_folder.is_dir():
         continue
 
@@ -74,6 +77,13 @@ for run_folder in folder.iterdir():
 
 data = pd.DataFrame(rows)
 
+if not OUTPUT_FOLDER.exists():
+    OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
+
+
+with open(f"{OUTPUT_FOLDER}/defects_data.csv", "w", encoding="utf-8", newline="") as f:
+    data.to_csv(f, index=False)
+
 # Counts the number of files processed by each model
 unique_file_models = data[["File Name", "Model"]].drop_duplicates()
 model_counts = unique_file_models["Model"].value_counts()
@@ -89,7 +99,9 @@ for model in data["Model"].unique():
     
     table = pd.crosstab(index=model_data["Defect Qualifier"], columns=model_data["Defect Type"], margins=True, margins_name="Total")
 
-    with open(f"output/defect_crosstab/{model}.csv", "w", encoding="utf-8", newline="") as f:
+    if not (OUTPUT_FOLDER / "defect_crosstab").exists():
+        (OUTPUT_FOLDER / "defect_crosstab").mkdir(parents=True, exist_ok=True)
+    with open(f"{OUTPUT_FOLDER}/defect_crosstab/{model}.csv", "w", encoding="utf-8", newline="") as f:
         table.to_csv(f)
 
 # Creates a comparison table for each file, showing the defects identified by each model
@@ -101,7 +113,7 @@ comparison_df = grouped.pivot(
     values="Defect"
 ).reset_index()
 
-with open("output/defect_comparison.csv", "w", encoding="utf-8", newline="") as f:
+with open(f"{OUTPUT_FOLDER}/defect_comparison.csv", "w", encoding="utf-8", newline="") as f:
     comparison_df.to_csv(f, index=False)
 
 plt.show()

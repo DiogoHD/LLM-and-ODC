@@ -11,7 +11,7 @@ from sklearn import metrics
 def safe_eval_references(references_str: str):
     try:
         data = ast.literal_eval(references_str)
-    except Exception:
+    except (ValueError, SyntaxError, TypeError):
         return references_str  # fallback
 
     return data
@@ -20,10 +20,10 @@ def clean_url(url: str) -> str:
     return url.strip().strip('"').strip("'")
 
 def csv_reader(name: str) -> pd.DataFrame:
-    root_dir = Path(__file__).parent.parent.parent
-    data_dir = root_dir / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    file_path = data_dir / f"{name}.csv"
+    root_dir = Path(__file__).resolve().parents[2]
+    input_dir = root_dir / "input"
+    input_dir.mkdir(parents=True, exist_ok=True)
+    file_path = input_dir / f"{name}.csv"
 
     try:
         df = pd.read_csv(file_path)
@@ -82,10 +82,10 @@ def excel_reader(name: str) -> pd.DataFrame:
     """
     
     # Accessing the location of the excel
-    root_dir = Path(__file__).parent.parent.parent  # Get the root folder
-    data_dir = root_dir / "data"                    # Joins with data directory
-    data_dir.mkdir(parents=True, exist_ok=True)
-    file_path = data_dir / f"{name}.xlsx"
+    root_dir = Path(__file__).resolve().parents[2]  # Get the root folder
+    input_dir = root_dir / "input"                    # Joins with input directory
+    input_dir.mkdir(parents=True, exist_ok=True)
+    file_path = input_dir / f"{name}.xlsx"
     
     # Opening excel
     try:
@@ -228,9 +228,8 @@ def create_confusion_matrix(df_real: pd.DataFrame, df_predicted: pd.DataFrame, c
         for commit, df_real_commit in df_real.groupby("P_COMMIT"):
             df_pred_commit = df_model[df_model["Sha"] == commit]
 
-            if (only_one_classification):
-                if len(df_real_commit) != 1:
-                    continue
+            if (only_one_classification) and len(df_real_commit) != 1:
+                continue
             
             # Convert to lists
             real_defects = df_real_commit[combined].tolist()

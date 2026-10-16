@@ -13,7 +13,8 @@ from functions.data_utils import (
 from functions.graphs import create_bar, create_pie
 from functions.regex_utils import extract_defects
 
-folder = Path("trustdev-output")
+root_dir = Path(__file__).resolve().parents[1]  # Get the root folder
+folder = root_dir / "vulnerabilities-output"  # Joins with vulnerabilities folder
 files = list(folder.rglob("*.txt"))
 data: list[dict[str, str | None]] = []
 

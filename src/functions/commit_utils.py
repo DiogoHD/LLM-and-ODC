@@ -1,17 +1,16 @@
 import csv
 import os
-from pathlib import Path
 import time
+from dataclasses import dataclass
+from pathlib import Path
 
+import requests
 from github import Commit, Github, GithubException, Repository
 from gitlab import Gitlab
 from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectCommit
 
-from dataclasses import dataclass
-
-import requests
-
+OUTPUT_FOLDER = "trustdev-output"
 
 # main.py 
 def fetch_github_commit(repo_url: str, sha: str, g: Github, repo_cache: dict[str, Repository.Repository]) -> Commit.Commit | None:
@@ -129,7 +128,7 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
                 prompt_eval_count + response_eval_count
             ])
             
-    except Exception as e:
+    except (requests.RequestException, KeyError, TypeError, OSError) as e:
         print(f"Error calling model {model} or writing file {file_path}: {e}")
 
 def normalize_github_files(commit: Commit.Commit) -> list[CommitFile]:
@@ -160,8 +159,8 @@ def normalize_gitlab_files(commit: ProjectCommit) -> list[CommitFile]:
 
 def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, repo_cache: dict[str, Repository.Repository | Project], run_id: str) -> None:
 
-    root_dir = Path(__file__).parent.parent.parent  # Get the root folder
-    output_dir = root_dir / "trustdev-output" / run_id  # Joins with output directory
+    root_dir = Path(__file__).resolve().parents[2]  # Get the root folder
+    output_dir = root_dir / OUTPUT_FOLDER / "runs" / run_id  # Joins with output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
     repo_dir = output_dir / row.REPO_PATH.replace("/", "-")   # Creates a directory for the repository, replacing '/' with '-' to avoid issues in folder names
