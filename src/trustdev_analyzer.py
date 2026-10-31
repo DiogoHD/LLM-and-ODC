@@ -36,8 +36,37 @@ def bar_graph(data: pd.DataFrame, title: str) -> None:
     plt.ylabel("Count")
     plt.title(title)
 
-rows = []
+# Comparison table with the mode of defects identified by each model for each file
+def calculate_mode_and_percentage(values: pd.Series) -> pd.Series:
+    mode = values.mode().iloc[0]
+    percentage = (values == mode).sum() / len(values) * 100
 
+    return pd.Series({
+        "Most Frequent Value": mode,
+        "Relative Frequency (%)": round(percentage, 2)
+    })
+
+def create_mode_comparison(column: str, output_filename: str) -> None:
+    grouped_mode = (
+        data.groupby(group_cols)[column]
+        .apply(calculate_mode_and_percentage)
+        .unstack()
+        .reset_index()
+    )
+
+    mode_df = grouped_mode.pivot(
+        index=index_cols,
+        columns="Model",
+        values=["Most Frequent Value", "Relative Frequency (%)"]
+    )
+
+    mode_df = mode_df.swaplevel(0, 1, axis=1).sort_index(axis=1, level=0)
+
+    mode_df.to_csv(OUTPUT_FOLDER / output_filename)
+
+
+# Load all text files from the runs folder and extract defects
+rows = []
 for run_folder in RUNS_FOLDER.iterdir():
     if not run_folder.is_dir():
         continue
@@ -120,9 +149,7 @@ comparison_df = grouped.pivot(
 with open(f"{OUTPUT_FOLDER}/total_defects_comparison.csv", "w", encoding="utf-8", newline="") as f:
     comparison_df.to_csv(f, index=False)
 
-# Comparison table with the mode of defects identified by each model for each file
-grouped_mode = data.groupby(group_cols)["Defect"].agg(lambda x: x.mode().iloc[0]).reset_index()
-mode_df = grouped_mode.pivot(index=index_cols, columns="Model", values="Defect").reset_index()
 
-with open(f"{OUTPUT_FOLDER}/mode_defects_comparison.csv", "w", encoding="utf-8", newline="") as f:
-    mode_df.to_csv(f, index=False)
+create_mode_comparison("Defect", "mode_defects_comparison.csv")
+create_mode_comparison("Defect Type", "mode_defect_type_comparison.csv")
+create_mode_comparison("Defect Qualifier", "mode_defect_qualifier_comparison.csv")
