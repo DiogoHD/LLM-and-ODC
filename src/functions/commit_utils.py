@@ -11,6 +11,41 @@ from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectCommit
 
 OUTPUT_FOLDER = "trustdev-output"
+UNWANTED_EXTENSIONS = (
+    # Images
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".ico", ".svg", ".webp",
+    ".psd", ".ai", ".eps", ".indd", ".sketch",
+
+    # Videos and audio
+    ".mp3", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".wav",
+
+    # Fonts
+    ".woff", ".woff2", ".ttf", ".otf", ".eot",
+
+    # Compressed archives
+    ".zip", ".tar", ".gz", ".rar", ".7z",
+
+    # Executables and libraries
+    ".exe", ".dll", ".so", ".dylib", ".bin", ".class", ".jar",
+    ".pyc", ".pyo", ".o", ".obj", ".lib", ".a", ".pdb", ".elf",
+
+    # Virtual machine and disk images
+    ".iso", ".img", ".vhd", ".vhdx", ".vmdk", ".qcow2", ".vdi", ".raw",
+    ".sparsebundle", ".sparseimage", ".dmg", ".pkg", ".deb", ".rpm",
+
+    # Documents and presentations
+    ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx",
+    ".txt", ".md", ".rst",
+
+    # Data files and configuration
+    ".csv", ".tsv", ".xml", ".toml", ".ini", ".cfg", ".conf",
+
+    # Database files
+    ".db", ".sqlite", ".sqlite3", ".db3", ".sqlitedb",
+
+    # Temporary and backup files
+    ".log", ".bak", ".tmp", ".swp", ".swo", ".lock", ".map",
+)
 
 # main.py 
 def fetch_github_commit(repo_url: str, sha: str, g: Github, repo_cache: dict[str, Repository.Repository]) -> Commit.Commit | None:
@@ -158,29 +193,16 @@ def normalize_gitlab_files(commit: ProjectCommit) -> list[CommitFile]:
     ]
 
 def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, repo_cache: dict[str, Repository.Repository | Project], run_id: str) -> None:
-
-    root_dir = Path(__file__).resolve().parents[2]  # Get the root folder
-    output_dir = root_dir / OUTPUT_FOLDER / "runs" / run_id  # Joins with output directory
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    repo_dir = output_dir / row.REPO_PATH.replace("/", "-")   # Creates a directory for the repository, replacing '/' with '-' to avoid issues in folder names
-    repo_dir.mkdir(parents=True, exist_ok=True)
-
     sha: str = row.P_COMMIT
-    sha_dir: Path = repo_dir / sha            # Directory's path to save IA's response
-    sha_dir.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist; parents=True creates every needed parent directory if it doesn't exist; exist_ok=True doesn't give a error if the directory already exists
-    
-    is_github = row.PLATFORM == "github"
-    is_gitlab = row.PLATFORM == "gitlab"
-    
-    # Create prompt for the IA
-    if is_github:
+
+    # Obtain and normalize the commit files based on the platform
+    if row.PLATFORM == "github":
         commit: Commit.Commit = fetch_github_commit(row.REPO_PATH, sha, g, repo_cache)
         if commit is None:
             print(f"Commit '{sha}' not found in GitHub repository '{row.REPO_PATH}'")
             return
         files = normalize_github_files(commit)
-    elif is_gitlab:
+    elif row.PLATFORM == "gitlab":
         commit: ProjectCommit = fetch_gitlab_commit(row.REPO_PATH, sha, gl, repo_cache)
         if commit is None:
             print(f"Commit '{sha}' not found in GitLab repository '{row.REPO_PATH}'")
@@ -189,8 +211,19 @@ def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, r
     else:
         raise ValueError("Unsupported URL format")
 
+    # Filter out unwanted file extensions
+    files = [f for f in files if not f.filename.lower().endswith(UNWANTED_EXTENSIONS)]
+    if not files:
+        print(f"No relevant files found in commit '{sha}' of repository '{row.REPO_PATH}'")
+        return
+
+    # Create output directory structure
+    root_dir = Path(__file__).resolve().parents[2]  # Get the root folder
+    sha_dir = root_dir / OUTPUT_FOLDER / "runs" / run_id / row.REPO_PATH.replace("/", "-") / sha
+    sha_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create prompts for each file in the commit and call the models
     content = create_message(files, prompt)
-    
     for message, file_name in content:
         safe_name = file_name.replace("/", "-").replace(".", "_")
         file_dir: Path = sha_dir / safe_name
