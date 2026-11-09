@@ -15,12 +15,11 @@ prompt = "A defect type can be one of the following categories: 1) Assignment/In
 
 # IA Models Used
 models = [
-    "qwen3:1.7b",
-    "deepseek-coder-v2:latest",
-    "qwen2.5-coder:14b",
-    "gpt-oss:20b",
-    "llama3.1:70b",
-    "gemma3:27b",
+    "deepseek-coder-v2:16b",
+    "gemma4:31b",
+    "gpt-oss:120b_custom",
+    "qwen3-coder:30b",
+    "qwen3.8:27b",
 ]
 
 NUM_RUNS = 5
