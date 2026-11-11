@@ -1,12 +1,13 @@
 import csv
+import json
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import requests
 from github import Commit, Github, GithubException, Repository
-from gitlab import Gitlab
+from gitlab import Gitlab, GitlabError
 from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectCommit
 
@@ -55,8 +56,10 @@ def fetch_github_commit(repo_url: str, sha: str, g: Github, repo_cache: dict[str
             repo_cache[repo_url] = g.get_repo(repo_url)
         return repo_cache[repo_url].get_commit(sha)
     except GithubException as e:
-        print(f"Error accessing '{repo_url}' with commit '{sha}': {e}")
-        return None
+        if e.status == 404:
+            print(f"Commit '{sha}' not found in GitHub repository '{repo_url}'")
+            return None
+        raise
 
 
 def fetch_gitlab_commit(project: str, sha: str, gl: Gitlab, repo_cache: dict[str, Project]) -> ProjectCommit | None:
@@ -71,8 +74,10 @@ def fetch_gitlab_commit(project: str, sha: str, gl: Gitlab, repo_cache: dict[str
         commit = repo_cache[repo_name].commits.get(sha)
         return commit
     except GitlabGetError as e:
-        print(f"Error accessing repository '{project}' with commit '{sha}': {e}")       # If it can't access the repo or the commit, ir prints an error
-        return None
+        if e.response_code == 404:
+            print(f"Commit '{sha}' not found in Gitlab project '{project}'")
+            return None
+        raise
 
 @dataclass
 class CommitFile:
@@ -192,41 +197,67 @@ def normalize_gitlab_files(commit: ProjectCommit) -> list[CommitFile]:
         for f in commit.diff()
     ]
 
-def process_commit(row, prompt: str, models: list[str], g: Github, gl: Gitlab, repo_cache: dict[str, Repository.Repository | Project], run_id: str) -> None:
-    sha: str = row.P_COMMIT
+CACHE_DIR = Path(__file__).resolve().parents[2] / OUTPUT_FOLDER / ".commit_cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Obtain and normalize the commit files based on the platform
+
+def get_commit_files(row, g: Github, gl: Gitlab, repo_cache) -> list[CommitFile] | None:
+    """Devolve os ficheiros do commit (None se não existe). Só vai à API na 1ª vez."""
+    sha: str = row.P_COMMIT
+    path = CACHE_DIR / f"{row.PLATFORM}__{row.REPO_PATH.replace('/', '-')}__{sha}.json"
+
+    if path.exists():
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return None if data is None else [CommitFile(**d) for d in data]
+
     if row.PLATFORM == "github":
-        commit: Commit.Commit = fetch_github_commit(row.REPO_PATH, sha, g, repo_cache)
-        if commit is None:
-            print(f"Commit '{sha}' not found in GitHub repository '{row.REPO_PATH}'")
-            return
-        files = normalize_github_files(commit)
+        commit = fetch_github_commit(row.REPO_PATH, sha, g, repo_cache)
+        files = normalize_github_files(commit) if commit is not None else None
     elif row.PLATFORM == "gitlab":
-        commit: ProjectCommit = fetch_gitlab_commit(row.REPO_PATH, sha, gl, repo_cache)
-        if commit is None:
-            print(f"Commit '{sha}' not found in GitLab repository '{row.REPO_PATH}'")
-            return
-        files = normalize_gitlab_files(commit)
+        commit = fetch_gitlab_commit(row.REPO_PATH, sha, gl, repo_cache)
+        files = normalize_gitlab_files(commit) if commit is not None else None
     else:
         raise ValueError("Unsupported URL format")
 
-    # Filter out unwanted file extensions
+    # Save the files to a temporary file first, then rename to avoid partial writes
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(
+        json.dumps(None if files is None else [asdict(f) for f in files]),
+        encoding="utf-8",
+    )
+    tmp.replace(path)
+    return files
+
+def process_commit(
+    row,
+    prompt: str,
+    model: str,
+    g: Github,
+    gl: Gitlab,
+    repo_cache: dict[str, Repository.Repository | Project],
+    run_id: str,
+) -> None:
+    sha: str = row.P_COMMIT
+    
+    try:
+        files = get_commit_files(row, g, gl, repo_cache)
+    except (GithubException, GitlabError, requests.RequestException) as e:
+        print(f"Error fetching commit files for '{sha}' in repository '{row.REPO_PATH}': {e}")
+        return
+    
+    if files is None:
+        return
+
     files = [f for f in files if not f.filename.lower().endswith(UNWANTED_EXTENSIONS)]
     if not files:
         print(f"No relevant files found in commit '{sha}' of repository '{row.REPO_PATH}'")
         return
 
-    # Create output directory structure
-    root_dir = Path(__file__).resolve().parents[2]  # Get the root folder
+    root_dir = Path(__file__).resolve().parents[2]
     sha_dir = root_dir / OUTPUT_FOLDER / "runs" / run_id / row.REPO_PATH.replace("/", "-") / sha
-    sha_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create prompts for each file in the commit and call the models
-    content = create_message(files, prompt)
-    for message, file_name in content:
+    for message, file_name in create_message(files, prompt):
         safe_name = file_name.replace("/", "-").replace(".", "_")
-        file_dir: Path = sha_dir / safe_name
+        file_dir = sha_dir / safe_name
         file_dir.mkdir(parents=True, exist_ok=True)
-        for model in models:
-            call_model(model, message, file_dir)
+        call_model(model, message, file_dir)
