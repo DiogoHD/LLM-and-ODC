@@ -4,7 +4,6 @@ import os
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
-from urllib import response
 
 import requests
 from github import Commit, Github, GithubException, Repository
@@ -156,7 +155,7 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
             "temperature": 0.2,
             "top_p": 0.9,
             "top_k": 40,
-            "num_ctx": 4096,
+            "num_ctx": 32768,
             }
     }
     
