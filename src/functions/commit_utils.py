@@ -3,7 +3,7 @@ import json
 import os
 import time
 from dataclasses import asdict, dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import requests
 from github import Commit, Github, GithubException, Repository
@@ -12,7 +12,20 @@ from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectCommit
 
 OUTPUT_FOLDER = "trustdev-output"
-UNWANTED_EXTENSIONS = (
+
+IGNORED_DIRS: set[str] = {
+    # Tests and Examples
+    "docs", "doc", "documentation", "examples", "example",
+    "test", "tests", "testdata", "fixtures", "mocks", "stubs", "e2e",
+    # Dependencies and Virtual Environments (kept venv, removed env for credential leak scanning)
+    "vendor", "node_modules", "venv", ".venv",
+    # Build, Output and Cache
+    "build", "dist", "out", "target", "bin", "obj", "__pycache__", ".cache",
+    # Version Control and IDEs
+    ".git", ".svn", ".vscode", ".idea", "packages"
+}
+
+IGNORED_EXTENSIONS: set[str] = {
     # Images
     ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".ico", ".svg", ".webp",
     ".psd", ".ai", ".eps", ".indd", ".sketch",
@@ -46,7 +59,17 @@ UNWANTED_EXTENSIONS = (
 
     # Temporary and backup files
     ".log", ".bak", ".tmp", ".swp", ".swo", ".lock", ".map",
-)
+}
+
+IGNORED_FILENAMES: set[str] = {
+    # Legal and Meta
+    "license", "licence", "changelog", "changes", "authors", "readme", 
+    "contributing", "code_of_conduct", "security",
+    # Dependency Manifests (Ignore if ODC focuses strictly on application logic)
+    "go.sum", "package-lock.json", "yarn.lock", "pom.xml", "build.gradle", "requirements.txt",
+    # Linters and Git configs
+    ".gitignore", ".dockerignore", ".eslintignore", ".prettierrc"
+}
 
 # main.py 
 def fetch_github_commit(repo_url: str, sha: str, g: Github, repo_cache: dict[str, Repository.Repository]) -> Commit.Commit | None:
@@ -228,6 +251,24 @@ def get_commit_files(row, g: Github, gl: Gitlab, repo_cache) -> list[CommitFile]
     tmp.replace(path)
     return files
 
+def should_ignore_file(filename: str) -> bool:
+    """Returns True if the file is not source code worth classifying (docs, assets, lockfiles...)."""
+    path = PurePosixPath(filename.lower())
+
+    if any(part in IGNORED_DIRS for part in path.parts[:-1]):
+        return True
+
+    test_suffixes = ("_test.go", "_spec.rb", "test.ts", "test.js", "spec.js", "spec.ts", "test.py")
+    if filename.lower().endswith(test_suffixes):
+        return True
+
+    if path.name in IGNORED_FILENAMES:
+        return True
+    if path.suffix in {"", ".md", ".rst", ".txt"} and path.stem in IGNORED_FILENAMES:
+        return True
+
+    return any(path.name.endswith(ext) for ext in IGNORED_EXTENSIONS)
+
 def process_commit(
     row,
     prompt: str,
@@ -248,7 +289,7 @@ def process_commit(
     if files is None:
         return
 
-    files = [f for f in files if not f.filename.lower().endswith(UNWANTED_EXTENSIONS)]
+    files = [f for f in files if not should_ignore_file(f.filename)]
     if not files:
         print(f"No relevant files found in commit '{sha}' of repository '{row.REPO_PATH}'")
         return

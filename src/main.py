@@ -24,7 +24,7 @@ models = [
 
 NUM_RUNS = 5
 
-df_real = csv_reader("cves_merged")
+df_real = csv_reader("dataset_cve_parsed")
 repo_cache: dict[str, Repository.Repository | Project] = {}
 
 load_dotenv()
