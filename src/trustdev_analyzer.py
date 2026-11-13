@@ -153,3 +153,5 @@ with open(f"{OUTPUT_FOLDER}/total_defects_comparison.csv", "w", encoding="utf-8"
 create_mode_comparison("Defect", "mode_defects_comparison.csv")
 create_mode_comparison("Defect Type", "mode_defect_type_comparison.csv")
 create_mode_comparison("Defect Qualifier", "mode_defect_qualifier_comparison.csv")
+
+plt.show()  # Show all the bar graphs created

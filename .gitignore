@@ -22,3 +22,6 @@ prompt.txt
 
 # Environment variables file
 .env
+
+# Git commit cache
+.commit_cache/

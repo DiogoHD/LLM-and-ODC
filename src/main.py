@@ -1,4 +1,5 @@
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
@@ -15,9 +16,8 @@ prompt = "..."  # (igual ao teu)
 
 # IA Models Used
 models = [
-    "deepseek-coder-v2:16b",
+    "deepseek-coder-v2:latest",
     "gemma4:31b",
-    "gpt-oss:120b_custom",
     "qwen3-coder:30b",
     "qwen3.8:27b",
 ]
@@ -35,9 +35,11 @@ auth = Auth.Token(token)
 g = Github(auth=auth)
 gl = Gitlab()
 
+times_taken = {}
 for model in models:
     print(f"\n=== Model: {model} ===")
 
+    start = time.time()
     for run_idx in range(1, NUM_RUNS + 1):
         run_id = f"run_{run_idx}"
         print(f"\n--- {model} | {run_id} ({run_idx}/{NUM_RUNS}) ---")
@@ -52,7 +54,7 @@ for model in models:
             run_id=run_id,
         )
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             list(
                 tqdm(
                     executor.map(executor_func, df_real.itertuples(index=False)),
@@ -61,3 +63,10 @@ for model in models:
                     unit=" commits",
                 )
             )
+    end = time.time()
+    times_taken[model] = end - start
+
+with open("times_taken.csv", "w", encoding="utf-8") as f:
+    f.write("Model,Time Taken (seconds)\n")
+    for model, time_taken in times_taken.items():
+        f.write(f"{model},{time_taken}\n")
