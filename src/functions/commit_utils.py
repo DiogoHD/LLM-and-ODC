@@ -4,6 +4,7 @@ import os
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
+from urllib import response
 
 import requests
 from github import Commit, Github, GithubException, Repository
@@ -167,6 +168,10 @@ def call_model(model: str, prompt: str, folder: Path) -> None:
             json=payload,
             auth=requests.auth.HTTPBasicAuth(os.getenv("CHAT_API_NAME"), os.getenv("CHAT_API_PASSWORD")),
         )
+        
+        if not response.ok:
+            print(f"HTTP {response.status_code}: {response.text}")
+
         response.raise_for_status()  # Raises an HTTPError if the response was an error
         elapsed = time.perf_counter() - start
         
